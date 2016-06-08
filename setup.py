@@ -1,5 +1,6 @@
 import sys
 import codecs
+from nd_toolbelt.version import VERSION
 
 # Prevent spurious errors during `python setup.py test`, a la
 # http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html:
@@ -17,12 +18,12 @@ if sys.version_info >= (3,):
 
 setup(
     name='nd-toolbelt',
-    version='0.1.0',
+    version=VERSION,
     description='Nextdoor Toolbelt',
     author='Dev Tools Team',
     author_email='dev-tools-team@nextdoor.com',
     packages=find_packages(exclude=['ez_setup']),
-    scripts=['bin/nd'],
+    scripts=['bin/nd', 'bin/nd-version'],
     install_requires=[
         'future>=0.15.2',
     ],
