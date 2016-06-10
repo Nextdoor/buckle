@@ -1,0 +1,5 @@
+test:
+  override:
+    - pip install -e .
+    - make setup_tests
+    - make test
