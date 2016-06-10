@@ -23,7 +23,7 @@ setup(
     author='Dev Tools Team',
     author_email='dev-tools-team@nextdoor.com',
     packages=find_packages(exclude=['ez_setup']),
-    scripts=['bin/nd', 'bin/nd-version'],
+    scripts=['bin/nd', 'bin/nd-version', 'bin/nd-init'],
     install_requires=[
         'future>=0.15.2',
     ],

@@ -6,15 +6,16 @@ import subprocess
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('app_name', type=str, help='The desired app to run via the nd_toolbelt app!')
+parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
+parser.add_argument('args', nargs=argparse.REMAINDER, help="Arguments to pass into the desired app")
 args = parser.parse_args()
 
-app_name = 'nd-' + args.app_name
+command = 'nd-' + args.command
 
 try:
-    app_path = subprocess.check_output(['which', app_name]).strip()
+    app_path = subprocess.check_output(['which', command]).strip()
 except subprocess.CalledProcessError:
-    sys.exit('ERROR: executable "%s" not found' % app_name)
+    sys.exit('ERROR: executable "%s" not found' % command)
 
-os.execv(app_path, [app_name])
+os.execv(app_path, [command] + args.args)
 
