@@ -18,4 +18,3 @@ except subprocess.CalledProcessError:
     sys.exit('ERROR: executable "%s" not found' % command)
 
 os.execv(app_path, [command] + args.args)
-
