@@ -1,5 +1,9 @@
 #!/usr/bin/env bats
 
+setup() {
+    unset ND_TOOLBELT_ROOT
+}
+
 _setup_test_directory() {
     TEST_DIRECTORY="$(mktemp -d nd-toolbelt_test.XXXXX --tmpdir)"
     _append_to_exit_trap "rm -rf $TEST_DIRECTORY"
@@ -72,6 +76,7 @@ _append_to_exit_trap() {
 
 @test "nd toolbelt does not autocomplete functions" {
     _setup_test_directory
+
     nd-some-test-commmand() { true; }
 
     COMP_WORDS=("some-test-com")
@@ -87,4 +92,58 @@ _append_to_exit_trap() {
 
     _ndtoolbelt_autocomplete_hook
     [ -n "$COMPREPLY" ]
+}
+
+@test "nd creates the '.updated' file if it does not exist" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
+    rm -f $updated_path
+    nd version
+
+    [[ -f $updated_path ]]
+}
+
+@test "nd updates the '.updated' file timestamp no more than once an hour" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
+    rm -f $updated_path
+
+    touch -d "55 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd version
+    [[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
+
+    touch -d "60 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd version
+    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+}
+
+@test "nd automatically updates itself from the remote repo" {
+    _setup_test_directory
+    branch=$(git rev-parse --abbrev-ref HEAD)
+
+    # Create a "remote" repo with a new version of nd
+    git clone . $TEST_DIRECTORY/nd-toolbelt-remote
+    pushd $TEST_DIRECTORY/nd-toolbelt-remote
+    echo "#!/usr/bin/env bash" > bin/nd
+    echo "echo my-updated-nd" >> bin/nd
+    git add bin/nd
+    git commit -m 'Test'
+    popd
+
+    # Create a clone of the original repo without the change but with the "remote" as the origin
+    export ND_TOOLBELT_ROOT=$TEST_DIRECTORY/nd-toolbelt
+    git clone . $TEST_DIRECTORY/nd-toolbelt
+
+    # Run nd in the clone
+    cd $TEST_DIRECTORY/nd-toolbelt
+    git remote rm origin
+    git remote add origin $TEST_DIRECTORY/nd-toolbelt-remote
+
+    virtualenv .venv
+    source .venv/bin/activate
+    pip install -e .
+    actual=$(nd version)
+    [[ $actual = "my-updated-nd" ]]
 }

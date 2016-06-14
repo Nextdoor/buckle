@@ -4,6 +4,33 @@ import argparse
 import os
 import subprocess
 import sys
+import time
+
+nd_toolbelt_root = os.getenv('ND_TOOLBELT_ROOT')
+
+if nd_toolbelt_root:
+    try:
+        update_creation_date = os.path.getmtime(nd_toolbelt_root + "/.updated")
+    except OSError:
+        update = True
+    else:
+        current_time = time.time()
+        update = (current_time - update_creation_date) >= 3600
+
+    if update:
+        subprocess.check_output('touch %s/.updated' % nd_toolbelt_root, shell=True)
+
+        branch = subprocess.check_output('git rev-parse --abbrev-ref HEAD', shell=True)
+        process = subprocess.Popen('git pull origin %s' % branch, shell=True, stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+        output = process.stdout.read()
+        process.communicate()  # collect the return code
+
+        if 'Already up-to-date.' not in output and process.returncode == 0:
+            subprocess.check_output('pip install -e .', shell=True)
+            os.execvp('nd', sys.argv)
+        elif process.returncode != 0:
+            sys.stderr.write('Unable to update repository.\n')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
