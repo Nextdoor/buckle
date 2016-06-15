@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import argparse
+import os
+import subprocess
+import sys
+
+parser = argparse.ArgumentParser(description='ND Toolbelt Help Tool')
+parser.add_argument('command', nargs='?', help='nd command to get help output from')
+args = parser.parse_args()
+
+# Prints nd-help --help when no outside command is specified.
+# TODO(hramos): iterate through all nd- files in path for help
+if not args.command:
+    parser.print_help()
+    exit(0)
+
+command = 'nd-' + args.command
+
+try:
+    app_path = subprocess.check_output(['which', command]).strip()
+except subprocess.CalledProcessError:
+    sys.exit('ERROR: executable "%s" not found' % command)
+
+os.execv(app_path, [command, '--help'])

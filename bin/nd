@@ -32,9 +32,9 @@ if nd_toolbelt_root:
         elif process.returncode != 0:
             sys.stderr.write('Unable to update repository.\n')
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description='ND Toolbelt')
 parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
-parser.add_argument('args', nargs=argparse.REMAINDER, help="Arguments to pass into the desired app")
+parser.add_argument('args', nargs=argparse.REMAINDER, help='Arguments to pass into the desired app')
 args = parser.parse_args()
 
 command = 'nd-' + args.command

@@ -127,7 +127,7 @@ _append_to_exit_trap() {
     git clone . $TEST_DIRECTORY/nd-toolbelt-remote
     pushd $TEST_DIRECTORY/nd-toolbelt-remote
     echo "#!/usr/bin/env bash" > bin/nd
-    echo "echo my-updated-nd" >> bin/nd
+    echo "echo my-updated-nd \$*" >> bin/nd
     git add bin/nd
     git commit -m 'Test'
     popd
@@ -144,6 +144,18 @@ _append_to_exit_trap() {
     virtualenv .venv
     source .venv/bin/activate
     pip install -e .
-    actual=$(nd version)
-    [[ $actual = "my-updated-nd" ]]
+    actual=$(nd --some-new-flag-that-does-not-exist-yet version)
+    [[ $actual = "my-updated-nd --some-new-flag-that-does-not-exist-yet version" ]]
+}
+
+@test "'nd help' runs nd-help --help" {
+    actual=$(nd help)
+    expected=$(nd-help --help)
+    [[ "$actual" = "$expected" && -n "$actual" ]]
+}
+
+@test "'nd help <command>' runs '<command> --help'" {
+    actual=$(nd help init)
+    expected=$(nd-init --help)
+    [[ "$actual" = "$expected" && -n "$actual" ]]
 }
