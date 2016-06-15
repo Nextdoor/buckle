@@ -38,19 +38,34 @@ _append_to_exit_trap() {
     [[ "$result" = "-a -b -c --f test" ]]
 }
 
-@test "nd autocomplete function returns matches that begin with nd" {
+@test "'nd ' returns matches that begin with nd" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
     chmod +x $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
 
-    COMP_WORDS=("toolbelt-random-unit-test-")
-    COMP_CWORD=0
+    COMP_WORDS=("nd" "toolbelt-random-unit-test-")
+    COMP_CWORD=1
 
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
 
-    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[0]}" ]]
+    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd help' returns matches that begin with nd" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
+    chmod +x $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
+
+    COMP_WORDS=("nd" "help" "toolbelt-random-unit-test-file")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+
+    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
 }
 
 @test "nd toolbelt does not autocomplete aliases" {
@@ -58,8 +73,8 @@ _append_to_exit_trap() {
 
     alias nd-some-test-command="echo test"
 
-    COMP_WORDS=("some-test-com")
-    COMP_CWORD=0
+    COMP_WORDS=("nd" "some-test-com")
+    COMP_CWORD=1
 
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
@@ -79,8 +94,8 @@ _append_to_exit_trap() {
 
     nd-some-test-commmand() { true; }
 
-    COMP_WORDS=("some-test-com")
-    COMP_CWORD=0
+    COMP_WORDS=("nd" "some-test-com")
+    COMP_CWORD=1
 
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
