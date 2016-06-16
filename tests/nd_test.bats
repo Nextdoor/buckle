@@ -38,7 +38,12 @@ _append_to_exit_trap() {
     [[ "$result" = "-a -b -c --f test" ]]
 }
 
-@test "'nd ' returns matches that begin with nd" {
+@test "nd toolbelt rejects options not handled" {
+    nd -random-test-option version && failed=1
+    [[ -z "$failed" ]]
+}
+
+@test "'nd ' autocomplete returns matches that begin with nd" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
@@ -46,21 +51,6 @@ _append_to_exit_trap() {
 
     COMP_WORDS=("nd" "toolbelt-random-unit-test-")
     COMP_CWORD=1
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-
-    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd help' returns matches that begin with nd" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
-    chmod +x $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
-
-    COMP_WORDS=("nd" "help" "toolbelt-random-unit-test-file")
-    COMP_CWORD=2
 
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
@@ -109,6 +99,33 @@ _append_to_exit_trap() {
     [ -n "$COMPREPLY" ]
 }
 
+@test "'nd help ' autocomplete returns matches that begin with nd" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
+    chmod +x $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
+
+    COMP_WORDS=("nd" "help" "toolbelt-random-unit-test-file")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+
+    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd help' runs nd-help --help" {
+    actual=$(nd help)
+    expected=$(nd-help --help)
+    [[ "$actual" = "$expected" && -n "$actual" ]]
+}
+
+@test "'nd help <command>' runs '<command> --help'" {
+    actual=$(nd help init)
+    expected=$(nd-init --help)
+    [[ "$actual" = "$expected" && -n "$actual" ]]
+}
+
 @test "nd creates the '.updated' file if it does not exist" {
     export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
     updated_path=$ND_TOOLBELT_ROOT/.updated
@@ -118,7 +135,7 @@ _append_to_exit_trap() {
     [[ -f $updated_path ]]
 }
 
-@test "nd updates the '.updated' file timestamp no more than once an hour" {
+@test "nd toolbelt updates the '.updated' file timestamp no more than once an hour" {
     export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
     updated_path=$ND_TOOLBELT_ROOT/.updated
     rm -f $updated_path
@@ -134,7 +151,18 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "nd automatically updates itself from the remote repo" {
+@test "'nd <command> --no-update'  does not update itself from the remote repo" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
+    rm -f $updated_path
+
+    touch -d "60 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd --no-update version
+    [[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
+}
+
+@test "nd toolbelt automatically updates itself from the remote repo" {
     _setup_test_directory
     branch=$(git rev-parse --abbrev-ref HEAD)
 
@@ -159,18 +187,7 @@ _append_to_exit_trap() {
     virtualenv .venv
     source .venv/bin/activate
     pip install -e .
+    >&2 pwd
     actual=$(nd --some-new-flag-that-does-not-exist-yet version)
     [[ $actual = "my-updated-nd --some-new-flag-that-does-not-exist-yet version" ]]
-}
-
-@test "'nd help' runs nd-help --help" {
-    actual=$(nd help)
-    expected=$(nd-help --help)
-    [[ "$actual" = "$expected" && -n "$actual" ]]
-}
-
-@test "'nd help <command>' runs '<command> --help'" {
-    actual=$(nd help init)
-    expected=$(nd-init --help)
-    [[ "$actual" = "$expected" && -n "$actual" ]]
 }

@@ -6,42 +6,58 @@ import subprocess
 import sys
 import time
 
-nd_toolbelt_root = os.getenv('ND_TOOLBELT_ROOT')
-
-if nd_toolbelt_root:
-    try:
-        update_creation_date = os.path.getmtime(nd_toolbelt_root + "/.updated")
-    except OSError:
-        update = True
-    else:
-        current_time = time.time()
-        update = (current_time - update_creation_date) >= 3600
-
-    if update:
-        subprocess.check_output('touch %s/.updated' % nd_toolbelt_root, shell=True)
-
-        branch = subprocess.check_output('git rev-parse --abbrev-ref HEAD', shell=True)
-        process = subprocess.Popen('git pull origin %s' % branch, shell=True, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
-        output = process.stdout.read()
-        process.communicate()  # collect the return code
-
-        if 'Already up-to-date.' not in output and process.returncode == 0:
-            subprocess.check_output('pip install -e .', shell=True)
-            os.execvp('nd', sys.argv)
-        elif process.returncode != 0:
-            sys.stderr.write('Unable to update repository.\n')
-
-parser = argparse.ArgumentParser(description='ND Toolbelt')
+parser = argparse.ArgumentParser()
+parser.add_argument('--no-update', action='store_true', help='Does not update nd-toolbelt for the given call')
 parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
 parser.add_argument('args', nargs=argparse.REMAINDER, help='Arguments to pass into the desired app')
-args = parser.parse_args()
 
-command = 'nd-' + args.command
+nd_toolbelt_root = os.getenv('ND_TOOLBELT_ROOT')
 
-try:
-    app_path = subprocess.check_output(['which', command]).strip()
-except subprocess.CalledProcessError:
-    sys.exit('ERROR: executable "%s" not found' % command)
 
-os.execv(app_path, [command] + args.args)
+def check_for_updates(argv):
+    if nd_toolbelt_root:
+        updated_path = nd_toolbelt_root + '/.updated'
+
+        try:
+            updated_creation_date = os.path.getmtime(updated_path)
+        except OSError:  # File doesn't exist
+            do_update = True
+        else:
+            current_time = time.time()
+            do_update = (current_time - updated_creation_date) >= 3600  # Hour in seconds
+
+        # Allow unknown arguments if they may be present in future versions of nd
+        known_args, _ = parser.parse_known_args(argv[1:])
+
+        if do_update and not known_args.no_update:
+            subprocess.check_output('touch {}'.format(updated_path), shell=True)
+
+            branch = subprocess.check_output('git rev-parse --abbrev-ref HEAD', shell=True)
+            process = subprocess.Popen('git pull origin {}'.format(branch), shell=True, stdin=subprocess.PIPE,
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.stdout.read()
+            process.communicate()  # Collect the return code
+
+            if 'Already up-to-date.' not in output and process.returncode == 0:
+                # Install the new version
+                subprocess.check_output('pip install -e .', shell=True)
+                os.execvp('nd', argv)  # Hand off to new nd version
+            elif process.returncode != 0:
+                sys.stderr.write('Unable to update repository.\n')
+
+
+def main(argv):
+    check_for_updates(argv)
+
+    args = parser.parse_args(argv[1:])
+    command = 'nd-' + args.command
+
+    try:
+        app_path = subprocess.check_output(['which', command]).strip()
+    except subprocess.CalledProcessError:
+        sys.exit('ERROR: executable "{}" not found'.format(command))
+
+    os.execv(app_path, [command] + args.args)
+
+if __name__ == "__main__":
+    main(sys.argv)
