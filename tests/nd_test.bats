@@ -171,6 +171,8 @@ _append_to_exit_trap() {
     pushd $TEST_DIRECTORY/nd-toolbelt-remote
     echo "#!/usr/bin/env bash" > bin/nd
     echo "echo my-updated-nd \$*" >> bin/nd
+    git config user.email "test@example.com"
+    git config user.name "test"
     git add bin/nd
     git commit -m 'Test'
     popd
