@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import argparse
 import pkg_resources
-import os
-import sys
 
 parser = argparse.ArgumentParser(description='Sets up the bash autocomplete for nd-toolbelt.')
-parser.add_argument('app_args', choices=['-'], help='The required syntax for this call is "nd init -".')
+parser.add_argument('app_args', choices=['-'],
+                    help='The required syntax for this call is "nd init -".')
 args = parser.parse_args()
 
-print pkg_resources.resource_string('nd_toolbelt', 'nd-init.sh')
+print(pkg_resources.resource_string('nd_toolbelt', 'nd-init.sh'))
