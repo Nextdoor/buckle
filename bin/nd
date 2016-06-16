@@ -6,8 +6,14 @@ import subprocess
 import sys
 import time
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--no-update', action='store_true', help='Does not update nd-toolbelt for the given call')
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+update_group = parser.add_mutually_exclusive_group()
+update_group.add_argument('--update', action='store_true', dest='force_update',
+                          help='Forces update of nd-toolbelt before the given command is run')
+update_group.add_argument('--no-update', action='store_true', dest='skip_update',
+                          help='Prevents update of nd-toolbelt before the given command is run')
+parser.add_argument('--update-freq', type=int, default=3600,
+                    help='Minimum number of seconds between updates.')
 parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
 parser.add_argument('args', nargs=argparse.REMAINDER, help='Arguments to pass into the desired app')
 
@@ -18,18 +24,18 @@ def check_for_updates(argv):
     if nd_toolbelt_root:
         updated_path = nd_toolbelt_root + '/.updated'
 
-        try:
-            updated_creation_date = os.path.getmtime(updated_path)
-        except OSError:  # File doesn't exist
-            do_update = True
-        else:
-            current_time = time.time()
-            do_update = (current_time - updated_creation_date) >= 3600  # Hour in seconds
-
         # Allow unknown arguments if they may be present in future versions of nd
         known_args, _ = parser.parse_known_args(argv[1:])
 
-        if do_update and not known_args.no_update:
+        try:
+            updated_creation_date = os.path.getmtime(updated_path)
+        except OSError:  # File doesn't exist
+            needs_update = True
+        else:
+            current_time = time.time()
+            needs_update = (current_time - updated_creation_date) >= known_args.update_freq
+
+        if needs_update and not known_args.skip_update or known_args.force_update:
             subprocess.check_output('touch {}'.format(updated_path), shell=True)
 
             branch = subprocess.check_output('git rev-parse --abbrev-ref HEAD', shell=True)

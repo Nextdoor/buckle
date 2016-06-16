@@ -151,15 +151,34 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "'nd <command> --no-update'  does not update itself from the remote repo" {
+@test "'nd --update <command>' always tries to update itself from the remote repo" {
     export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
     updated_path=$ND_TOOLBELT_ROOT/.updated
-    rm -f $updated_path
+
+    touch -d "55 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd --update version
+    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+}
+
+@test "'nd --no-update <command>' does not update itself from the remote repo" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
 
     touch -d "60 minutes ago" $updated_path
     last_timestamp=$(stat -c %Y $updated_path)
     nd --no-update version
     [[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
+}
+
+@test "'nd --update-freq <seconds> <command>' updates with the given frequency" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
+
+    touch -d "5 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd --update-freq 300 version
+    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
 @test "nd toolbelt automatically updates itself from the remote repo" {
