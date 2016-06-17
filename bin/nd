@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -20,7 +21,7 @@ parser.add_argument('args', nargs=argparse.REMAINDER, help='Arguments to pass in
 nd_toolbelt_root = os.getenv('ND_TOOLBELT_ROOT')
 
 
-def check_for_updates(argv):
+def maybe_reload_with_updates(argv):
     if nd_toolbelt_root:
         updated_path = nd_toolbelt_root + '/.updated'
 
@@ -47,15 +48,19 @@ def check_for_updates(argv):
             if 'Already up-to-date.' not in output and process.returncode == 0:
                 # Install the new version
                 subprocess.check_output('pip install -e .', shell=True)
-                os.execvp('nd', argv)  # Hand off to new nd version
+                os.execvp('nd', sys.argv)  # Hand off to new nd version
             elif process.returncode != 0:
                 sys.stderr.write('Unable to update repository.\n')
 
 
 def main(argv):
-    check_for_updates(argv)
+    argv_with_opts = list(argv)
+    argv_with_opts[1:1] = shlex.split(os.getenv('ND_TOOLBELT_OPTS', " "))
 
-    args = parser.parse_args(argv[1:])
+    maybe_reload_with_updates(argv_with_opts)
+
+    args = parser.parse_args(argv_with_opts[1:])
+
     command = 'nd-' + args.command
 
     try:

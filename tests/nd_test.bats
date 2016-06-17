@@ -181,6 +181,17 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
+@test "Options from ND_TOOLBELT_OPTS are used by nd" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
+
+    export ND_TOOLBELT_OPTS='--update-freq "300" --update'
+    touch -d "5 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd version
+    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+}
+
 @test "nd toolbelt automatically updates itself from the remote repo" {
     _setup_test_directory
     branch=$(git rev-parse --abbrev-ref HEAD)
