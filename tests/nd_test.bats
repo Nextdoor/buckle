@@ -114,16 +114,36 @@ _append_to_exit_trap() {
     [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd help' runs nd-help --help" {
-    actual=$(nd help)
-    expected=$(nd-help --help)
-    [[ "$actual" = "$expected" && -n "$actual" ]]
+@test "'nd help' returns help of all nd commands" {
+    result=$(nd help)
+    [[ $result == *"Sets up the bash autocomplete for nd-toolbelt."* ]]
 }
 
 @test "'nd help <command>' runs '<command> --help'" {
     actual=$(nd help init)
     expected=$(nd-init --help)
     [[ "$actual" = "$expected" && -n "$actual" ]]
+}
+
+@test "'nd help' returns '<help not found>' if a command's help returns non-zero exit status" {
+    _setup_test_directory
+
+    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-command-test
+    echo "exit 1" >> $TEST_DIRECTORY/nd-command-test
+    chmod +x $TEST_DIRECTORY/nd-command-test
+
+    result=$(nd help)
+    echo "$result" | grep -E "command-test\s+<help not found>"
+}
+
+@test "'nd help' returns '<help not found>' if a command's help can't be parsed" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-command-test
+    chmod +x $TEST_DIRECTORY/nd-command-test
+
+    result=$(nd help)
+    echo "$result" | grep -E "command-test\s+<help not found>"
 }
 
 @test "nd creates the '.updated' file if it does not exist" {

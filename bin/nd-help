@@ -1,25 +1,71 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+from future.utils import iteritems
+
 import argparse
 import os
+import re
 import subprocess
 import sys
 
-parser = argparse.ArgumentParser(description='ND Toolbelt Help Tool')
-parser.add_argument('command', nargs='?', help='nd command to get help output from')
-args = parser.parse_args()
 
-# Prints nd-help --help when no outside command is specified.
-# TODO(hramos): iterate through all nd- files in path for help
-if not args.command:
-    parser.print_help()
-    exit(0)
+def truncate(s, length=75):
+    return s[:length-3] + (s[length-3:] and '...')
 
-command = 'nd-' + args.command
 
-try:
-    app_path = subprocess.check_output(['which', command]).strip()
-except subprocess.CalledProcessError:
-    sys.exit('ERROR: executable "%s" not found' % command)
+def print_help_for_all_commands(parser, args):
+    nd_command_set = set(
+        subprocess.check_output('{ compgen -c nd-; compgen -abk -A function nd-; } | sort | uniq -u | sed s/nd-//',
+                                shell=True, executable='/bin/bash').split())
+    nd_command_set -= set(args.exclude)
 
-os.execv(app_path, [command, '--help'])
+    command_help_hash = {}
+    for command in nd_command_set:
+        try:
+            command_help_text = subprocess.check_output('nd-' + command + ' --help', shell=True)
+        except subprocess.CalledProcessError:
+            matches = None
+        else:
+            matches = re.search(r'\n\s*\n(.*?)\r?\n\s*\r?\n', command_help_text, flags=re.DOTALL)
+
+        if matches:
+            command_help_hash[command] = matches.group(1)
+        else:
+            command_help_hash[command] = "<help not found>"
+
+    rows, columns = os.popen('stty size', 'r').read().split()  # Get the console window size
+    max_key_length = max(len(key) for key in command_help_hash.keys())
+
+    parser.print_usage()
+    print('\nThe available commands are:')
+
+    for key, value in sorted(iteritems(command_help_hash)):
+        # Right pads keys to max key length, cuts off help text to fit on one line in current window size
+        print(truncate(('   {:<' + str(max_key_length) + '}   {}').format(key, value.replace('\n', '')), int(columns)))
+
+    print("\nSee 'nd help <command>' for more information on a specific command.")
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description='ND Toolbelt Help Tool',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('command', nargs='?', help='nd command to get help output from')
+    parser.add_argument('--exclude', action='append', default=['memcache-top'],
+                        help='nd commands to exclude from help')
+    args = parser.parse_args(argv[1:])
+
+    if args.command:
+        command = 'nd-' + args.command
+
+        try:
+            app_path = subprocess.check_output(['which', command]).strip()
+        except subprocess.CalledProcessError:
+            sys.exit('ERROR: executable "%s" not found' % command)
+
+        os.execv(app_path, [command, '--help'])
+    else:
+        print_help_for_all_commands(parser, args)
+
+if __name__ == "__main__":
+    main(sys.argv)
