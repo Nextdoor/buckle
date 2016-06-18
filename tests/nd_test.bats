@@ -212,6 +212,20 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
+@test "If $ND_TOOLBELT_ROOT is not set, repo is assumed to be $NEXTDOOR_ROOT/.nd-toolbelt" {
+    _setup_test_directory
+    export NEXTDOOR_ROOT=$TEST_DIRECTORY
+    git clone . $TEST_DIRECTORY/.nd-toolbelt
+    nd version
+    [[ -f  "$NEXTDOOR_ROOT/.nd-toolbelt/.updated" ]]
+}
+
+@test "If neither $ND_TOOLBELT_ROOT nor $NEXTDOOR_ROOT is defined, it doesn't blow up" {
+    _setup_test_directory
+    unset NEXTDOOR_ROOT
+    nd version
+}
+
 @test "nd toolbelt automatically updates itself from the remote repo" {
     _setup_test_directory
     branch=$(git rev-parse --abbrev-ref HEAD)
