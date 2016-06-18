@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -20,12 +21,12 @@ parser.add_argument('args', nargs=argparse.REMAINDER, help='Arguments to pass in
 
 nd_toolbelt_root = os.getenv('ND_TOOLBELT_ROOT')
 
-# Temporary until all users set ND_TOOLBELT_ROOT in their bashrc/profile files
-if not nd_toolbelt_root and os.getenv('NEXTDOOR_ROOT'):
-    default_root = os.getenv('NEXTDOOR_ROOT') + '/.nd-toolbelt'
-    if os.path.isdir(default_root):
-        nd_toolbelt_root = default_root
-
+# Get the repo location from pip if it isn't already defined
+if not nd_toolbelt_root:
+    output = subprocess.check_output('pip show nd-toolbelt', shell=True)
+    matches = re.search(r"Location:\s+(/\S+)", output)
+    if matches:
+        nd_toolbelt_root = matches.group(1)
 
 def maybe_reload_with_updates(argv):
     if nd_toolbelt_root:

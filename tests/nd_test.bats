@@ -212,14 +212,6 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "If $ND_TOOLBELT_ROOT is not set, repo is assumed to be $NEXTDOOR_ROOT/.nd-toolbelt" {
-    _setup_test_directory
-    export NEXTDOOR_ROOT=$TEST_DIRECTORY
-    git clone . $TEST_DIRECTORY/.nd-toolbelt
-    nd version
-    [[ -f  "$NEXTDOOR_ROOT/.nd-toolbelt/.updated" ]]
-}
-
 @test "If neither $ND_TOOLBELT_ROOT nor $NEXTDOOR_ROOT is defined, it doesn't blow up" {
     _setup_test_directory
     unset NEXTDOOR_ROOT
@@ -242,7 +234,6 @@ _append_to_exit_trap() {
     popd
 
     # Create a clone of the original repo without the change but with the "remote" as the origin
-    export ND_TOOLBELT_ROOT=$TEST_DIRECTORY/nd-toolbelt
     git clone . $TEST_DIRECTORY/nd-toolbelt
 
     # Run nd in the clone
@@ -253,7 +244,6 @@ _append_to_exit_trap() {
     virtualenv .venv
     source .venv/bin/activate
     pip install -e .
-    >&2 pwd
     actual=$(nd --some-new-flag-that-does-not-exist-yet version)
     [[ $actual = "my-updated-nd --some-new-flag-that-does-not-exist-yet version" ]]
 }
