@@ -1,6 +1,9 @@
+.cache/
 .idea/
+.tox/
 .venv/
 *.egg-info
 *.pyc
-bats
+bats/
 .updated
+build/

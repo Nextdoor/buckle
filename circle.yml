@@ -1,5 +1,13 @@
 test:
   override:
-    - pip install -e .
-    - make setup_tests
-    - make test
+    # If 2 nodes are available, run a different python version on each
+    - ? |
+        if [ "$CIRCLE_NODE_TOTAL" -gt "1" ]; then
+          case $CIRCLE_NODE_INDEX in
+            0) tox -e py27 ;;
+            1) tox -e py34 ;;
+          esac
+        else
+          tox
+        fi
+      : parallel: true

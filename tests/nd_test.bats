@@ -201,7 +201,7 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "Options from ND_TOOLBELT_OPTS are used by nd" {
+@test "Options from \$ND_TOOLBELT_OPTS are used by nd" {
     export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
     updated_path=$ND_TOOLBELT_ROOT/.updated
 
@@ -210,12 +210,6 @@ _append_to_exit_trap() {
     last_timestamp=$(stat -c %Y $updated_path)
     nd version
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
-}
-
-@test "If neither $ND_TOOLBELT_ROOT nor $NEXTDOOR_ROOT is defined, it doesn't blow up" {
-    _setup_test_directory
-    unset NEXTDOOR_ROOT
-    nd version
 }
 
 @test "nd toolbelt automatically updates itself from the remote repo" {
