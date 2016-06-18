@@ -16,7 +16,7 @@ def truncate(s, length=75):
 
 def print_help_for_all_commands(parser, args):
     nd_command_set = set(
-        subprocess.check_output('{ compgen -c nd-; compgen -abk -A function nd-; } | sort | uniq -u | sed s/nd-//',
+        subprocess.check_output('eval "$(nd init -)"; COMP_CWORD=1 _ndtoolbelt_autocomplete_hook; echo ${COMPREPLY[*]}',
                                 shell=True, executable='/bin/bash').split())
     nd_command_set -= set(args.exclude)
 
