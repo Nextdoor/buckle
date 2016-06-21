@@ -1,4 +1,6 @@
 future
 flake8
+libfaketime
+mock
 pytest
 tox

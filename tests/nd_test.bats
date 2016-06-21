@@ -1,7 +1,21 @@
 #!/usr/bin/env bats
 
 setup() {
-    unset ND_TOOLBELT_ROOT
+    _setup_tmp_directory
+
+    # Create a fake git root so update checks happen quickly
+    fake_root=$TMPDIR/fake-root
+    mkdir $fake_root
+    touch $fake_root/.updated
+    export ND_TOOLBELT_ROOT=$fake_root
+
+    # Pretend the clock was checked recently so we don't repeat the check on each test
+    touch $TMPDIR/.nd_toolbelt_clock_last_checked
+}
+
+_setup_tmp_directory() {
+    export TMPDIR="$(mktemp -d nd-toolbelt_test_tmp.XXXXX --tmpdir)"
+    _append_to_exit_trap "rm -rf $TMPDIR"
 }
 
 _setup_test_directory() {
@@ -12,7 +26,7 @@ _setup_test_directory() {
 
 _append_to_exit_trap() {
     # Makes sure to run the existing exit handler
-    trap "$1; $(trap -p EXIT | awk '{print $3}')" EXIT
+    trap "$1; $(trap -p EXIT | sed -r "s/trap.*?'(.*)' \w+$/\1/")" EXIT
 }
 
 @test "'nd version' matches 'nd-version'" {
@@ -29,7 +43,6 @@ _append_to_exit_trap() {
 
 @test "'nd <command>' runs 'nd-<command>'" {
     _setup_test_directory
-
     echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-command-test
     echo "echo \$*" >> $TEST_DIRECTORY/nd-command-test
     chmod +x $TEST_DIRECTORY/nd-command-test
@@ -41,6 +54,17 @@ _append_to_exit_trap() {
 @test "nd toolbelt rejects options not handled" {
     nd -random-test-option version && failed=1
     [[ -z "$failed" ]]
+}
+
+@test "Options from \$ND_TOOLBELT_OPTS are used by nd" {
+    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+    updated_path=$ND_TOOLBELT_ROOT/.updated
+
+    export ND_TOOLBELT_OPTS='--update-freq "300" --update'
+    touch -d "5 minutes ago" $updated_path
+    last_timestamp=$(stat -c %Y $updated_path)
+    nd version
+    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
 @test "'nd ' autocomplete returns matches that begin with nd" {
@@ -201,20 +225,34 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "Options from \$ND_TOOLBELT_OPTS are used by nd" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
+@test "nd toolbelt warns the user if the machine time offset by at least 120 seconds" {
+    clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
+    rm -f $clock_checked_path
 
-    export ND_TOOLBELT_OPTS='--update-freq "300" --update'
-    touch -d "5 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
+    eval "$(python-libfaketime)"
+    stderr=$(FAKETIME=-120 nd version 2>&1 >/dev/null)
+    [[ $stderr == *"The system clock is behind by"* ]]
+}
+
+@test "nd toolbelt checks the system time no more than once an hour" {
+    clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
+    rm -f $clock_checked_path
+
+    touch -d "55 minutes ago" $clock_checked_path
+    last_timestamp=$(stat -c %Y $clock_checked_path)
     nd version
-    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+    [[ "$(stat -c %Y $clock_checked_path)" = $last_timestamp ]]
+
+    touch -d "60 minutes ago" $clock_checked_path
+    last_timestamp=$(stat -c %Y $clock_checked_path)
+    nd version
+    [[ "$(stat -c %Y $clock_checked_path)" != $last_timestamp ]]
 }
 
 @test "nd toolbelt automatically updates itself from the remote repo" {
     _setup_test_directory
     branch=$(git rev-parse --abbrev-ref HEAD)
+    unset ND_TOOLBELT_ROOT
 
     # Create a "remote" repo with a new version of nd
     git clone . $TEST_DIRECTORY/nd-toolbelt-remote
