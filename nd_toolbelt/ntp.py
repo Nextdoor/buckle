@@ -18,14 +18,15 @@ def get_ntp_time(host, timeout):
     """
 
     # reference time (in seconds since 1900-01-01 00:00:00)
-    TIME1970 = 2208988800L  # 1970-01-01 00:00:00
+    TIME1970 = 2208988800  # 1970-01-01 00:00:00
 
     # connect to server
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client.settimeout(timeout)
 
     try:
-        client.sendto('\x1b' + 47 * '\0', (host, 123))
+        s = '\x1b' + 47 * '\0'
+        client.sendto(s.encode(), (host, 123))
         msg, _ = client.recvfrom(1024)
     except socket.timeout:
         raise NtpTimeError('Request to ntp host "{}" timed out.'.format(host))

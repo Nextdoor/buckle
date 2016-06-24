@@ -10,7 +10,7 @@ from nd_toolbelt.commands import nd
 
 
 def generate_ntp_time_string(offset=0):
-    time_since_1900 = time.time() + 2208988800L
+    time_since_1900 = int(time.time()) + 2208988800
     return struct.pack('!12I', *(([0] * 10) + [time_since_1900 + offset] + [0]))
 
 

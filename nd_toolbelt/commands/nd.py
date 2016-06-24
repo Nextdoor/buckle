@@ -93,6 +93,8 @@ def maybe_reload_with_updates(argv):
             if 'Already up-to-date.' not in output and process.returncode == 0:
                 # Install the new version
                 subprocess.check_output('pip install -e .', shell=True)
+
+                flush_file_descriptors()
                 os.execvp('nd', argv)  # Hand off to new nd version
             elif process.returncode != 0:
                 print('Unable to update repository.', file=sys.stderr)
@@ -108,11 +110,10 @@ def check_system_clock(check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
     except OSError:  # File doesn't exist
         check_clock = True
     else:
-        check_clock = (current_time - clock_checked_date) >= check_clock_freq
+        check_clock = current_time - clock_checked_date >= check_clock_freq or check_clock_freq == 0
 
     if check_clock:
         print('Checking that the current machine time is accurate...', file=sys.stderr)
-
         # Time in seconds since 1970 epoch
         system_time = current_time
 
@@ -126,14 +127,19 @@ def check_system_clock(check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
 
         if abs(time_difference) >= MAX_CLOCK_SKEW_TIME:
             print('The system clock is behind by {} seconds.'
-                  ' Please run "sudo ntpdate -u time.apple.com".'.format(time_difference),
+                  ' Please run "sudo ntpdate -u time.apple.com".'.format(int(time_difference)),
                   file=sys.stderr)
 
         subprocess.check_output(['touch', clock_checked_path])
 
 
+def flush_file_descriptors():
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+
 def main(argv=sys.argv):
-    args = parse_args(argv)
+    args = parse_args(argv, known_only=False)
     command = 'nd-' + args.command
 
     try:
@@ -142,10 +148,13 @@ def main(argv=sys.argv):
         sys.exit('ERROR: executable "{}" not found'.format(command))
 
     maybe_reload_with_updates(argv)
+
+    parse_args(argv, known_only=True)  # Ensure that arguments are all known at this point
     if not args.skip_clock_check:
         check_system_clock(args.check_clock_freq)
 
-    os.execv(app_path, [command] + args.args)
+    flush_file_descriptors()
+    os.execv(app_path, [command] + args.args)  # Hand off to nd command
 
 if __name__ == "__main__":
     main(sys.argv)
