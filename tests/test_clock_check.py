@@ -21,7 +21,7 @@ class TestNdCheckSystemClockClass(object):
         with mock.patch.object(socket, 'socket', return_value=fake_socket):
             nd.check_system_clock(check_clock_freq=0)
             stdout, stderr = capfd.readouterr()
-            assert stderr == 'Checking that the current machine time is accurate...\n'
+            assert 'WARNING:' not in stderr and 'ERROR:' not in stderr
 
     def test_check_system_clock_prints_an_warning_if_system_clock_is_too_far_behind(self, capfd):
         fake_socket = mock.Mock()

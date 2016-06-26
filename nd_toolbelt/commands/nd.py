@@ -16,10 +16,16 @@ import tempfile
 import time
 
 from nd_toolbelt import ntp
+from nd_toolbelt import message
 
 DEFAULT_NTP_HOST = 'time.apple.com'
 CHECK_CLOCK_TIMEOUT = 2  # Only wait for ntp for 2 seconds
 MAX_CLOCK_SKEW_TIME = 60  # Time in seconds to tolerate for system clock offset
+
+
+def flush_file_descriptors():
+    sys.stdout.flush()
+    sys.stderr.flush()
 
 
 def parse_args(argv, known_only=True):
@@ -80,24 +86,24 @@ def maybe_reload_with_updates(argv):
 
         if needs_update or known_args.force_update:
             subprocess.check_output(['touch', updated_path])
-            print('Checking for nd toolbelt updates...', file=sys.stderr)
+            message.info('Checking for nd toolbelt updates...')
 
             branch = subprocess.check_output(
-                'git rev-parse --abbrev-ref HEAD', shell=True).decode('utf-8')
-            process = subprocess.Popen('git pull origin {}'.format(branch), shell=True,
-                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                'git rev-parse --abbrev-ref HEAD', cwd=nd_toolbelt_root, shell=True).decode('utf-8')
+            process = subprocess.Popen('git pull origin {}'.format(branch), cwd=nd_toolbelt_root,
+                                       shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT, close_fds=True)
             output = process.stdout.read().decode('utf-8')
             process.communicate()  # Collect the return code
 
             if 'Already up-to-date.' not in output and process.returncode == 0:
                 # Install the new version
-                subprocess.check_output('pip install -e .', shell=True)
+                subprocess.check_output('pip install -e .', cwd=nd_toolbelt_root, shell=True)
 
                 flush_file_descriptors()
                 os.execvp('nd', argv)  # Hand off to new nd version
             elif process.returncode != 0:
-                print('Unable to update repository.', file=sys.stderr)
+                message.error('Unable to update repository.')
 
 
 def check_system_clock(check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
@@ -113,29 +119,25 @@ def check_system_clock(check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
         check_clock = current_time - clock_checked_date >= check_clock_freq or check_clock_freq == 0
 
     if check_clock:
-        print('Checking that the current machine time is accurate...', file=sys.stderr)
+        message.info('Checking that the current machine time is accurate...')
+
         # Time in seconds since 1970 epoch
         system_time = current_time
 
         try:
             network_time = ntp.get_ntp_time(host=ntp_host, timeout=ntp_timeout)
         except ntp.NtpTimeError as e:
-            print('Error checking network time, exception: {}'.format(e), file=sys.stderr)
+            message.error('Error checking network time, exception: {}'.format(e))
             return
 
         time_difference = network_time - system_time
 
         if abs(time_difference) >= MAX_CLOCK_SKEW_TIME:
-            print('The system clock is behind by {} seconds.'
-                  ' Please run "sudo ntpdate -u time.apple.com".'.format(int(time_difference)),
-                  file=sys.stderr)
+            message.warning(
+                'The system clock is behind by {} seconds.'
+                ' Please run "sudo ntpdate -u time.apple.com".'.format(int(time_difference)))
 
         subprocess.check_output(['touch', clock_checked_path])
-
-
-def flush_file_descriptors():
-    sys.stdout.flush()
-    sys.stderr.flush()
 
 
 def main(argv=sys.argv):
@@ -145,7 +147,7 @@ def main(argv=sys.argv):
     try:
         app_path = subprocess.check_output(['which', command]).strip()
     except subprocess.CalledProcessError:
-        sys.exit('ERROR: executable "{}" not found'.format(command))
+        sys.exit(message.error('ERROR: executable "{}" not found'.format(command)))
 
     maybe_reload_with_updates(argv)
 

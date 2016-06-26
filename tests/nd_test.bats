@@ -198,6 +198,7 @@ _append_to_exit_trap() {
 @test "'nd --update <command>' always tries to update itself from the remote repo" {
     export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
     updated_path=$ND_TOOLBELT_ROOT/.updated
+    cd /  # Ensure that cwd location does not affect update process
 
     touch -d "55 minutes ago" $updated_path
     last_timestamp=$(stat -c %Y $updated_path)
