@@ -18,7 +18,6 @@ def get_ntp_time(host, timeout):
     Returns:
         ntp host server's time as a string
     """
-
     # reference time (in seconds since 1900-01-01 00:00:00)
     TIME1970 = 2208988800  # 1970-01-01 00:00:00
 

@@ -37,7 +37,7 @@ _append_to_exit_trap() {
 
 @test "'nd init -' returns 0 exit code" {
     actual="$(nd init -)"
-    expected="$(cat nd_toolbelt/nd-init.sh)"    # TODO(hramos): Make not relative path?
+    expected="$(cat nd_toolbelt/nd-init.sh)"  # TODO(hramos): Make not relative path?
     [[ "$actual" = "$expected" && -n "$expected" ]]
 }
 
@@ -67,19 +67,79 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "'nd ' autocomplete returns matches that begin with nd" {
+@test "'nd ' autocomplete returns matches that begin with 'nd-'" {
     _setup_test_directory
 
-    touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
-    chmod +x $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
+    touch $TEST_DIRECTORY/nd-toolbelt-my-command
+    chmod +x $TEST_DIRECTORY/nd-toolbelt-my-command
 
-    COMP_WORDS=("nd" "toolbelt-random-unit-test-")
+    COMP_WORDS=("nd" "toolbelt-my")
     COMP_CWORD=1
 
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
+    [[ "toolbelt-my-command" = "${COMPREPLY[*]}" ]]
+}
 
-    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
+@test "'nd ' autocomplete returns matches for commands that appear twice on the path" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-command
+    chmod +x $TEST_DIRECTORY/nd-my-command
+
+    mkdir $TEST_DIRECTORY/second_test_directory
+    cp $TEST_DIRECTORY/nd-my-command $TEST_DIRECTORY/second_test_directory/nd-my-command
+
+    PATH=$TEST_DIRECTORY/second_test_directory:$PATH
+
+    COMP_WORDS=("nd" "my")
+    COMP_CWORD=1
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "my-command" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace>' autocomplete returns matches that begin with 'nd~<namespace>'" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    COMP_WORDS=("nd" "my-namespace" "my")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "my-command" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> <subnamespace>' autocomplete returns matches" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-namespace~my-subnamespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-subnamespace~my-command
+
+    COMP_WORDS=("nd" "my-namespace" "my-subnamespace" "my")
+    COMP_CWORD=3
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "my-command" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace>' autocomplete does not complete grandchildren namespaces" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child_my-command
+    chmod +x $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child_my-command
+
+    COMP_WORDS=("nd" "grandparent-namespace")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "parent-namespace" = "${COMPREPLY[*]}" ]]
 }
 
 @test "nd toolbelt does not autocomplete aliases" {
@@ -123,19 +183,60 @@ _append_to_exit_trap() {
     [ -n "$COMPREPLY" ]
 }
 
-@test "'nd help ' autocomplete returns matches that begin with nd" {
+@test "'nd help' autocomplete returns matches that begin with nd" {
     _setup_test_directory
 
-    touch $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
-    chmod +x $TEST_DIRECTORY/nd-toolbelt-random-unit-test-file
+    touch $TEST_DIRECTORY/nd-toolbelt-my-command
+    chmod +x $TEST_DIRECTORY/nd-toolbelt-my-command
 
-    COMP_WORDS=("nd" "help" "toolbelt-random-unit-test-file")
+    COMP_WORDS=("nd" "help" "toolbelt-my")
     COMP_CWORD=2
 
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
+    [[ "toolbelt-my-command" = "${COMPREPLY[*]}" ]]
+}
 
-    [[ "toolbelt-random-unit-test-file" = "${COMPREPLY[*]}" ]]
+@test "'nd <namespace> help' autocomplete returns matches that begin with nd <namespace>" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    COMP_WORDS=("nd" "my-namespace" "help" "my")
+    COMP_CWORD=3
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "my-command" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> <subnamespace> help' autocomplete returns matches" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child-namespace~my-command
+
+    COMP_WORDS=("nd" "grandparent-namespace" "parent-namespace" "help" "child")
+    COMP_CWORD=4
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "child-namespace" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd help' autocomplete returns namespaces" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    COMP_WORDS=("nd" "help" "my-")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "my-namespace" = "${COMPREPLY[*]}" ]]
 }
 
 @test "'nd help' returns help of all nd commands" {

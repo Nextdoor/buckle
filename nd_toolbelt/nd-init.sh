@@ -1,12 +1,25 @@
 _ndtoolbelt_autocomplete_hook() {
-    if [[ $COMP_CWORD = 1 || $COMP_CWORD = 2 && "${COMP_WORDS[1]}" == "help" ]]; then
-        local current_word=${COMP_WORDS[$COMP_CWORD]}
-        # Returns commands that start with nd-. Excludes aliases and functions.
-        COMPREPLY=( $({
-            compgen -c nd-$current_word | sort -u;
-            compgen -abk -A function nd-$current_word;
-            } | sort | uniq -u | sed s/nd-// ) )
+    local CURRENT_WORD=${COMP_WORDS[$COMP_CWORD]}
+
+    local NAMESPACES=()
+    # Gather the namespace arguments into an array. Ignores the current word and args named 'help'.
+    for arg in "${COMP_WORDS[@]:1:$(($COMP_CWORD - 1))}"; do
+        if [[ "$arg" != "help" ]]; then
+            NAMESPACES[${#NAMESPACES[*]}]="$arg" # Append arg to end of NAMESPACE_ARRAY
+        fi
+    done
+
+    if [ -z "$NAMESPACES" ]; then
+        local NAMESPACE_PREFIX="nd-"
+    else
+        # Joins the NAMESPACES array with trailing underscores to gather the current namespace
+        local NAMESPACE_PREFIX="nd-$(printf "%s~" "${NAMESPACES[@]}")"
     fi
+
+    COMPREPLY=( $({
+            compgen -c "$NAMESPACE_PREFIX$CURRENT_WORD" | sort -u;
+            compgen -abk -A function "$NAMESPACE_PREFIX$CURRENT_WORD";
+            } | sort | uniq -u | sed -e s/"$NAMESPACE_PREFIX"// -e s/~.*$//) )
 }
 
 complete -F _ndtoolbelt_autocomplete_hook nd
