@@ -12,10 +12,12 @@ _ndtoolbelt_autocomplete_hook() {
     if [ -z "$NAMESPACES" ]; then
         local NAMESPACE_PREFIX="nd-"
     else
-        # Joins the NAMESPACES array with trailing underscores to gather the current namespace
+        # Joins the NAMESPACES array with trailing tildas to gather the current namespace
         local NAMESPACE_PREFIX="nd-$(printf "%s~" "${NAMESPACES[@]}")"
     fi
 
+    # Returns commands that start with nd-<namespace>. Excludes aliases and functions
+    # Parses and removes subnamespaces in the autocompletion results
     COMPREPLY=( $({
             compgen -c "$NAMESPACE_PREFIX$CURRENT_WORD" | sort -u;
             compgen -abk -A function "$NAMESPACE_PREFIX$CURRENT_WORD";

@@ -92,7 +92,7 @@ _append_to_exit_trap() {
 
     PATH=$TEST_DIRECTORY/second_test_directory:$PATH
 
-    COMP_WORDS=("nd" "my")
+    COMP_WORDS=("nd" "my-c")
     COMP_CWORD=1
 
     eval "$(nd init -)"
@@ -211,6 +211,16 @@ _append_to_exit_trap() {
     [[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
+@test "'nd help --exclude <filename>' excludes filename from help prompt" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-excluded-command
+    chmod +x $TEST_DIRECTORY/nd-my-excluded-command
+
+    result=$(nd help --exclude nd-my-excluded-command)
+    [[ $result != *"my-excluded-command"* ]]
+}
+
 @test "'nd <namespace> <subnamespace> help' autocomplete returns matches" {
     _setup_test_directory
 
@@ -231,7 +241,7 @@ _append_to_exit_trap() {
     touch $TEST_DIRECTORY/nd-my-namespace~my-command
     chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
 
-    COMP_WORDS=("nd" "help" "my-")
+    COMP_WORDS=("nd" "help" "my-na")
     COMP_CWORD=2
 
     eval "$(nd init -)"
@@ -240,8 +250,27 @@ _append_to_exit_trap() {
 }
 
 @test "'nd help' returns help of all nd commands" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-command
+    chmod +x $TEST_DIRECTORY/nd-my-command
+
     result=$(nd help)
-    [[ $result == *"Sets up the bash autocomplete for nd-toolbelt."* ]]
+    [[ $result == *"Help for command nd-my-command"* ]]
+}
+
+@test "'nd help' returns help of nd namespaced commands" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-command
+    chmod +x $TEST_DIRECTORY/nd-my-command
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-test-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-test-namespace~my-command
+
+    result=$(nd help)
+    [[ $result == *"Help for command nd-my-command"* ]]
+    [[ $result == *"Help for command nd-my-test-namespace"* ]]
 }
 
 @test "'nd help <command>' runs '<command> --help'" {

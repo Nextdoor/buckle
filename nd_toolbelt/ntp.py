@@ -8,7 +8,7 @@ class NtpTimeError(Exception):
 
 # From http://blog.mattcrampton.com/post/88291892461/query-an-ntp-server-from-python
 def get_ntp_time(host, timeout):
-    """Returns a long of the time from the given ntp host server.
+    """ Returns a long of the time from the given ntp host server.
     If the server does not exist or times out, returns None.
 
     Args:

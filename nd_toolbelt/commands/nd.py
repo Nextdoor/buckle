@@ -29,7 +29,8 @@ def flush_file_descriptors():
 
 
 def parse_args(argv, known_only=True):
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     description='ND Toolbelt centralizes ND commands and tools.')
 
     update_group = parser.add_mutually_exclusive_group()
     update_group.add_argument('--update', action='store_true', dest='force_update',
