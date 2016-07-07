@@ -25,8 +25,9 @@ def truncate(s, length=75):
     return s[:length - 3] + (s[length - 3:] and '...')
 
 
-def print_help_for_all_commands(parser, args, namespace=''):
-    autocompleted_commands = autocomplete.get_nd_namespace_autocompletion(namespace)
+def print_help_for_all_commands(parser, args, namespace=()):
+    prefix = 'nd-' + '~'.join(namespace)
+    autocompleted_commands = autocomplete.get_executables_starting_with(prefix)
 
     nd_command_list = sorted(set(autocompleted_commands) - set(args.exclude))
     if not nd_command_list:
@@ -72,21 +73,21 @@ def main(argv=sys.argv):
                         help='nd commands to exclude from help')
     args = parser.parse_args(argv[1:])
 
-    if args.command:
-        command = 'nd-' + '~'.join(args.command)  # Handle namespaces if they exist
+    command = 'nd-' + '~'.join(args.command)  # Handle namespaces if they exist
 
+    if command in args.exclude:
+        sys.exit(message.error('executable {} excluded from nd help'.format(command)))
+
+    try:
+        app_path = subprocess.check_output(['which', command]).strip()
+    except subprocess.CalledProcessError:
         try:
-            app_path = subprocess.check_output(['which', command]).strip()
-        except subprocess.CalledProcessError:
-            try:
-                # Check if help is being called for a given namespace instead of a specific command
-                print_help_for_all_commands(parser, args, namespace='~'.join(args.command))
-            except NoCommandsInNamespace:
-                sys.exit(message.error('executable {} not found'.format(command)))
-        else:
-            os.execv(app_path, [command, '--help'])
+            # Check if help is being called for a given namespace instead of a specific command
+            print_help_for_all_commands(parser, args, namespace=args.command)
+        except NoCommandsInNamespace:
+            sys.exit(message.error('executable {} not found'.format(command)))
     else:
-        print_help_for_all_commands(parser, args, namespace='')
+        os.execv(app_path, [command, '--help'])
 
 if __name__ == "__main__":
     main(sys.argv)

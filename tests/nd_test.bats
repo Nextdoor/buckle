@@ -51,6 +51,16 @@ _append_to_exit_trap() {
     [[ "$result" = "-a -b -c --f test" ]]
 }
 
+@test "'nd <namespace> <command>' runs 'nd-<namespace>~<command>'" {
+    _setup_test_directory
+    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-namespace-test~command-test
+    echo "echo \$*" >> $TEST_DIRECTORY/nd-namespace-test~command-test
+    chmod +x $TEST_DIRECTORY/nd-namespace-test~command-test
+
+    result="$(nd namespace-test command-test -a -b -c --f test)"
+    [[ "$result" = "-a -b -c --f test" ]]
+}
+
 @test "nd toolbelt rejects options not handled" {
     nd -random-test-option version && failed=1
     [[ -z "$failed" ]]
@@ -67,7 +77,7 @@ _append_to_exit_trap() {
     [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "'nd ' autocomplete returns matches that begin with 'nd-'" {
+@test "'nd <tab>' autocompletes commands that begin with 'nd-'" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-toolbelt-my-command
@@ -81,7 +91,7 @@ _append_to_exit_trap() {
     [[ "toolbelt-my-command" = "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd ' autocomplete returns matches for commands that appear twice on the path" {
+@test "'nd <tab>' autocompletes commands that appear twice on the path" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-my-command
@@ -100,7 +110,7 @@ _append_to_exit_trap() {
     [[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd <namespace>' autocomplete returns matches that begin with 'nd~<namespace>'" {
+@test "'nd <namespace> <tab>' completes commands that begin with 'nd~<namespace>'" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-my-namespace~my-command
@@ -114,7 +124,7 @@ _append_to_exit_trap() {
     [[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd <namespace> <subnamespace>' autocomplete returns matches" {
+@test "'nd <namespace> <subnamespace> <tab>' completes commands" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-my-namespace~my-subnamespace~my-command
@@ -128,7 +138,7 @@ _append_to_exit_trap() {
     [[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd <namespace>' autocomplete does not complete grandchildren namespaces" {
+@test "'nd <namespace> <tab>' does not complete grandchildren namespaces" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child_my-command
@@ -218,7 +228,17 @@ _append_to_exit_trap() {
     chmod +x $TEST_DIRECTORY/nd-my-excluded-command
 
     result=$(nd help --exclude nd-my-excluded-command)
-    [[ $result != *"my-excluded-command"* ]]
+    [[ "$result" != *"my-excluded-command"* ]]
+}
+
+@test "'nd help <filename>' does not run --help on the file if filename is excluded in nd-help" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-excluded-command
+    chmod +x $TEST_DIRECTORY/nd-my-excluded-command
+
+    result=$( { nd help --exclude nd-my-excluded-command my-excluded-command; } 2>&1 )
+    [[ "$result" == *"ERROR: nd: executable nd-my-excluded-command excluded from nd help"* ]]
 }
 
 @test "'nd <namespace> <subnamespace> help' autocomplete returns matches" {
@@ -265,12 +285,22 @@ _append_to_exit_trap() {
     cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-command
     chmod +x $TEST_DIRECTORY/nd-my-command
 
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-test-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-test-namespace~my-command
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
 
     result=$(nd help)
     [[ $result == *"Help for command nd-my-command"* ]]
-    [[ $result == *"Help for command nd-my-test-namespace"* ]]
+    [[ $result == *"Help for command nd-my-namespace"* ]]
+}
+
+@test "'nd help <namespace>' returns help for commands in the namespace" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    result=$(nd help my-namespace)
+    [[ $result == *"Help for command nd-my-namespace"* ]]
 }
 
 @test "'nd help <command>' runs '<command> --help'" {
@@ -365,16 +395,25 @@ _append_to_exit_trap() {
     [[ $stderr == *"The system clock is behind by"* ]]
 }
 
-@test "nd toolbelt checks the system time no more than once an hour" {
+@test "nd toolbelt deletes the .nd_toolbelt_clock_last_checked file if clock is out of date" {
     clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
     rm -f $clock_checked_path
 
-    touch -d "55 minutes ago" $clock_checked_path
+    eval "$(python-libfaketime)"
+    FAKETIME=-120 nd version 2>&1 >/dev/null
+    [ ! -f $clock_checked_path ]
+}
+
+@test "nd toolbelt checks the system time no more than once every 10 minutes" {
+    clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
+    rm -f $clock_checked_path
+
+    touch -d "7 minutes ago" $clock_checked_path
     last_timestamp=$(stat -c %Y $clock_checked_path)
     nd version
     [[ "$(stat -c %Y $clock_checked_path)" = $last_timestamp ]]
 
-    touch -d "60 minutes ago" $clock_checked_path
+    touch -d "10 minutes ago" $clock_checked_path
     last_timestamp=$(stat -c %Y $clock_checked_path)
     nd version
     [[ "$(stat -c %Y $clock_checked_path)" != $last_timestamp ]]

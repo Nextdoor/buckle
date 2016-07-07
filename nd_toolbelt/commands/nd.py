@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 
+from nd_toolbelt import autocomplete
 from nd_toolbelt import ntp
 from nd_toolbelt import message
 
@@ -26,6 +27,34 @@ MAX_CLOCK_SKEW_TIME = 60  # Time in seconds to tolerate for system clock offset
 def flush_file_descriptors():
     sys.stdout.flush()
     sys.stderr.flush()
+
+
+class CommandNotFound(Exception):
+    pass
+
+
+def separate_command_and_arguments(args):
+    """ Parses a list of arguments and separates a command from its arguments.
+
+    Args:
+        args: a list of arguments to be parsed.
+
+    Returns:
+        A tuple of the command's full filename as a string and its arguments as a list of strings.
+
+    Raises:
+        CommandNotFound
+    """
+
+    # Try increasingly long command names until command can't be found
+    for cmd_end, arg in enumerate(args):
+        command = 'nd-' + '~'.join(args[:cmd_end+1])
+        possible_executables = autocomplete.get_executables_starting_with(command)
+
+        if possible_executables == [command]:
+            return command, args[cmd_end+1:]
+        elif not possible_executables:
+            raise CommandNotFound(command)
 
 
 def parse_args(argv, known_only=True):
@@ -42,9 +71,11 @@ def parse_args(argv, known_only=True):
 
     parser.add_argument('--no-clock-check', action='store_true', dest='skip_clock_check',
                         help='Do not check the system clock.')
-    parser.add_argument('--check-clock-freq', type=int, default=3600,
+    parser.add_argument('--check-clock-freq', type=int, default=600,
                         help='Minimum number of seconds between clock checks')
 
+    parser.add_argument('namespace', nargs='*', default=[],
+                        help='The namespace(s) of the command to run.')
     parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
     parser.add_argument('args', nargs=argparse.REMAINDER,
                         help='Arguments to pass to the desired app')
@@ -52,9 +83,17 @@ def parse_args(argv, known_only=True):
     args_with_opts = shlex.split(os.getenv('ND_TOOLBELT_OPTS', '')) + list(argv[1:])
 
     if known_only:
-        return parser.parse_args(args_with_opts)
+        args = parser.parse_args(args_with_opts)
     else:
-        return parser.parse_known_args(args_with_opts)[0]  # Return only known args from tuple
+        args = parser.parse_known_args(args_with_opts)[0]
+
+    try:
+        args.command, args.args = separate_command_and_arguments(args.namespace +
+                                                                 [args.command] + args.args)
+    except CommandNotFound as e:
+        sys.exit(message.error('ERROR: executable "{}" not found'.format(e)))
+
+    return args
 
 
 def maybe_reload_with_updates(argv):
@@ -137,19 +176,16 @@ def check_system_clock(check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
             message.warning(
                 'The system clock is behind by {} seconds.'
                 ' Please run "sudo ntpdate -u time.apple.com".'.format(int(time_difference)))
-
-        subprocess.check_output(['touch', clock_checked_path])
+            try:
+                os.remove(clock_checked_path)  # Ensure sure clock is checked on next run
+            except OSError:
+                pass
+        else:
+            subprocess.check_output(['touch', clock_checked_path])
 
 
 def main(argv=sys.argv):
     args = parse_args(argv, known_only=False)
-    command = 'nd-' + args.command
-
-    try:
-        app_path = subprocess.check_output(['which', command]).strip()
-    except subprocess.CalledProcessError:
-        sys.exit(message.error('ERROR: executable "{}" not found'.format(command)))
-
     maybe_reload_with_updates(argv)
 
     parse_args(argv, known_only=True)  # Ensure that arguments are all known at this point
@@ -157,7 +193,7 @@ def main(argv=sys.argv):
         check_system_clock(args.check_clock_freq)
 
     flush_file_descriptors()
-    os.execv(app_path, [command] + args.args)  # Hand off to nd command
+    os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
 
 if __name__ == "__main__":
     main(sys.argv)

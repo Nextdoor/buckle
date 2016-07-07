@@ -4,15 +4,16 @@ import subprocess
 
 
 def find_commands_that_start_with(prefix, functions_only=False):
-    """ Returns a sorted list of the bash auto-completion for the given prefix.
+    """ Returns a sorted list of the commands with the given prefix on the path.
 
     Args:
-        prefix: Desired string to find the auto-completion of.
-        functions_only: If true, the auto-completion will find only functions and not all commands
+        prefix: String to match the beginning of commands in path to.
+        functions_only: Bool determining whether only functions are returned.
 
     Returns:
-        A sorted list of auto-completion results.
+        A sorted list of commands that start with the given prefix.
     """
+
     if functions_only is False:
         opts = '-c'
     else:
@@ -27,10 +28,18 @@ def find_commands_that_start_with(prefix, functions_only=False):
         return sorted(results.split())
 
 
-def get_nd_namespace_autocompletion(namespace=''):
-    prefix = 'nd-{}'.format(namespace)
-    autocompleted_commands = find_commands_that_start_with(prefix)
-    autocompleted_functions = find_commands_that_start_with(prefix, functions_only=True)
+def get_executables_starting_with(prefix=''):
+    """ Returns a list of executables that start with the given nd namespace.
 
-    namespace_autocomplete = set(autocompleted_commands) - set(autocompleted_functions)
-    return sorted(list(namespace_autocomplete))
+    Args:
+        prefix: String prefix to match the beginning of executables in path to.
+
+    Returns:
+        A sorted list of all executables in the given nd namespace.
+    """
+
+    commands_list = find_commands_that_start_with(prefix)
+    functions_list = find_commands_that_start_with(prefix, functions_only=True)
+
+    namespace_executables = set(commands_list) - set(functions_list)
+    return sorted(list(namespace_executables))

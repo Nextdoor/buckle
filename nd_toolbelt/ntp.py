@@ -12,12 +12,13 @@ def get_ntp_time(host, timeout):
     If the server does not exist or times out, returns None.
 
     Args:
-        host: ntp host url to query
-        timeout: length of time to wait for ntp host
+        host: ntp host url to query.
+        timeout: Length of time to wait for ntp host.
 
     Returns:
-        ntp host server's time as a string
+        ntp host server's time as a string.
     """
+
     # reference time (in seconds since 1900-01-01 00:00:00)
     TIME1970 = 2208988800  # 1970-01-01 00:00:00
 
