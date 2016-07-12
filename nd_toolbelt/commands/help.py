@@ -42,7 +42,8 @@ def print_help_for_all_commands(parser, args, namespace=()):
             matches = None
         else:
             # Parse the command's help for the general description
-            matches = re.search(r'\n\s*\n(.*?)\r?\n\s*\r?\n', command_help_text, flags=re.DOTALL)
+            matches = re.search(r'(?:usage:.*?\n\s*\n)?(.*?)\r?\n\s*\r?\n', command_help_text,
+                                flags=re.DOTALL)
 
         command = re.sub('^nd-', '', command).replace('~', ' ')
         if matches:

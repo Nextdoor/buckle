@@ -3,6 +3,7 @@ import io
 import mock
 import os
 import stat
+import textwrap
 import traceback
 
 import pytest  # flake8: noqa
@@ -12,6 +13,16 @@ from nd_toolbelt.commands import help
 
 class ChildError(Exception):
     pass
+
+
+def make_help_command(message):
+    """ Makes the contents of the test help commands """
+    return textwrap.dedent("""\
+        #!/bin/bash
+        cat << 'EOF'
+        {}
+        EOF
+        """.format(message))
 
 
 def run_as_child(func):
@@ -54,8 +65,8 @@ def executable_factory(request, monkeypatch, tmpdir):
     def factory(name, contents=''):
         monkeypatch.setenv('PATH', tmpdir, prepend=':')
         test_cmd_path = os.path.join(str(tmpdir), name)
-        with open(test_cmd_path, 'w+') as file:
-            file.write(contents)
+        with open(test_cmd_path, 'w+') as f:
+            f.write(contents)
         # Make file executable
         os.chmod(test_cmd_path, os.stat(test_cmd_path).st_mode | stat.S_IEXEC)
         return test_cmd_path
@@ -81,7 +92,7 @@ def test_with_no_args(capfd, mock_terminal_size):
 def test_with_command(capfd, executable_factory):
     """ Running help for a command prints help for that command """
 
-    executable_factory('nd-my-command', "#!/bin/echo my help message")
+    executable_factory('nd-my-command', make_help_command('my help message'))
     run_as_child(lambda: help.main(['nd-help', 'my-command']))
     stdout, stderr = capfd.readouterr()
     assert 'my help message' in stdout
@@ -119,11 +130,34 @@ def test_with_command_cannot_be_run(executable_factory, capfd):
 def test_with_namespace(executable_factory, capfd, mock_terminal_size):
     """ Running help on a namespace shows help for each command in the namespace """
 
-    executable_factory('nd-my-namespace-my-command',
-               """#!/bin/bash
-               echo my help message
-               """)
+    executable_factory('nd-my-namespace~my-command', make_help_command('my help message'))
     help.main(['nd-help', 'my-namespace'])
     stdout, stderr = capfd.readouterr()
     assert 'my-namespace my-command' in stdout
+    assert 'my help message' in stdout
+
+
+def test_parses_argparse_generated_help(executable_factory, capfd, mock_terminal_size):
+    """ Print help for all commands parses argparse's description string its generated --help """
+
+    executable_factory('nd-my-command', make_help_command(
+                        """usage: ...
+
+                        my help message
+
+                        """))
+    help.main(['nd-help'])
+    stdout, stderr = capfd.readouterr()
+    assert 'my help message' in stdout
+
+
+def test_parses_nonargparse_generated_help(executable_factory, capfd, mock_terminal_size):
+    """ Print help for all commands parses descriptions from generic commands' --help """
+
+    executable_factory('nd-my-command', make_help_command(
+                        """my help message
+
+                        """))
+    help.main(['nd-help'])
+    stdout, stderr = capfd.readouterr()
     assert 'my help message' in stdout
