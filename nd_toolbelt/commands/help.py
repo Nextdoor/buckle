@@ -17,10 +17,6 @@ from nd_toolbelt import message
 from nd_toolbelt import autocomplete
 
 
-class NoCommandsInNamespace(Exception):
-    pass
-
-
 def truncate(s, length=75):
     return s[:length - 3] + (s[length - 3:] and '...')
 
@@ -31,7 +27,10 @@ def print_help_for_all_commands(parser, args, namespace=()):
 
     nd_command_list = sorted(set(autocompleted_commands) - set(args.exclude))
     if not nd_command_list:
-        raise NoCommandsInNamespace()
+        if namespace:
+            sys.exit(message.error('executable {} not found'.format(prefix)))
+        else:
+            sys.exit(message.error('No nd commands found on path. Check your $PATH.'))
 
     command_help_hash = {}
     for command in nd_command_list:
@@ -39,17 +38,17 @@ def print_help_for_all_commands(parser, args, namespace=()):
             command_help_text = subprocess.check_output(
                '{} --help 2> /dev/null'.format(command), shell=True).decode('utf-8')
         except subprocess.CalledProcessError:
-            matches = None
+            help_text = None
         else:
-            # Parse the command's help for the general description
-            matches = re.search(r'(?:usage:.*?\n\s*\n)?(.*?)\r?\n\s*\r?\n', command_help_text,
-                                flags=re.DOTALL)
+            # Return first paragraph that is not empty or starts with usage
+            help_text = next((
+                paragraph.replace('\n', '')
+                for paragraph in re.split('\n\s*\n', command_help_text)
+                if paragraph.strip() and not paragraph.startswith('usage: ')), None)
 
         command = re.sub('^nd-', '', command).replace('~', ' ')
-        if matches:
-            command_help_hash[command] = matches.group(1)
-        else:
-            command_help_hash[command] = '<help not found>'
+
+        command_help_hash[command] = help_text or '<help not found>'
 
     rows, columns = os.popen('stty size', 'r').read().split()  # Get the console window size
     max_key_length = max(len(key) for key in command_help_hash.keys())
@@ -59,8 +58,8 @@ def print_help_for_all_commands(parser, args, namespace=()):
 
     for key, value in sorted(iteritems(command_help_hash)):
         # Right pads keys length and truncate text to fit in window
-        print(truncate(('   {:<' + str(max_key_length) + '}   {}').format(
-            key, value.replace('\n', '')), int(columns)))
+        print(truncate(('   {:<' + str(max_key_length) + '}   {}').format(key, value),
+                       int(columns)))
 
     print("\nSee 'nd help <command|namespace>' for more "
           "information on a specific command or namespace.")
@@ -82,13 +81,13 @@ def main(argv=sys.argv):
     try:
         app_path = subprocess.check_output(['which', command]).strip()
     except subprocess.CalledProcessError:
-        try:
-            # Check if help is being called for a given namespace instead of a specific command
-            print_help_for_all_commands(parser, args, namespace=args.command)
-        except NoCommandsInNamespace:
-            sys.exit(message.error('executable {} not found'.format(command)))
+        # Check if help is being called for a given namespace instead of a specific command
+        print_help_for_all_commands(parser, args, namespace=args.command)
     else:
-        os.execv(app_path, [command, '--help'])
+        try:
+            os.execv(app_path, [command, '--help'])
+        except:
+            sys.exit(message.error('executable {} could not be run'.format(command)))
 
 if __name__ == "__main__":
     main(sys.argv)

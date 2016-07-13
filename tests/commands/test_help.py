@@ -15,14 +15,10 @@ class ChildError(Exception):
     pass
 
 
-def make_help_command(message):
-    """ Makes the contents of the test help commands """
-    return textwrap.dedent("""\
-        #!/bin/bash
-        cat << 'EOF'
-        {}
-        EOF
-        """.format(message))
+@pytest.yield_fixture(autouse=True)
+def run_around_tests(monkeypatch):
+    monkeypatch.setenv('PATH', '/usr/bin:/bin')
+    yield
 
 
 def run_as_child(func):
@@ -81,83 +77,94 @@ def mock_terminal_size():
         popen.assert_called_with('stty size', 'r')
 
 
-def test_with_no_args(capfd, mock_terminal_size):
-    """ Running help without a command or namespace prints the usage message """
-
-    help.main(['nd-help'])
-    stdout, stderr = capfd.readouterr()
-    assert 'usage: ' in stdout
+def make_help_command(message):
+    """ Makes the contents of the test help commands """
+    return "#!/bin/bash\ncat << 'EOF'\n{}\nEOF".format(textwrap.dedent(message))
 
 
-def test_with_command(capfd, executable_factory):
-    """ Running help for a command prints help for that command """
+class TestSingleCommandHelp:
+    def test_calls_commands_with_help_flag(self, executable_factory, capfd):
+        """ Print help for all commands parses descriptions from generic commands' --help """
 
-    executable_factory('nd-my-command', make_help_command('my help message'))
-    run_as_child(lambda: help.main(['nd-help', 'my-command']))
-    stdout, stderr = capfd.readouterr()
-    assert 'my help message' in stdout
+        executable_factory('nd-my-command', '#!/bin/echo')
+        run_as_child(lambda: help.main(['nd-help', 'my-command']))
+        stdout, stderr = capfd.readouterr()
+        assert '--help' in stdout
 
+    def test_with_missing_command(self, capfd):
+        """ Running help for a missing command prints an error """
+        with pytest.raises(SystemExit):
+            help.main(['nd-help', 'my-missing-command'])
+        stdout, stderr = capfd.readouterr()
+        assert "executable nd-my-missing-command not found" in stderr
 
-def test_with_missing_command(capfd):
-    """ Running help for a missing command prints an error """
-    with pytest.raises(SystemExit):
-        help.main(['nd-help', 'my-missing-command'])
-    stdout, stderr = capfd.readouterr()
-    assert "executable nd-my-missing-command not found" in stderr
+    def test_with_command_cannot_be_run(self, executable_factory, capfd):
+        """ Handle the case where a command cannot be run """
 
-
-@pytest.mark.skipif(True, reason="this raises an exception")
-def test_with_command_without_help(executable_factory, capfd):
-    """ Handle the case where help is empty """
-
-    executable_factory('nd-my-command', '#!/bin/bash')
-    run_as_child(lambda: help.main(['nd-help', 'my-command']))
-    stdout, stderr = capfd.readouterr()
-    assert 'executable nd-my-command not found' in stdout
-
-
-@pytest.mark.skipif(True, reason="need to improve behavior when command can't be run")
-def test_with_command_cannot_be_run(executable_factory, capfd):
-    """ Handle the case where a command cannot be run """
-
-    executable_factory('nd-my-command')
-    run_as_child(lambda: help.main(['nd-help', 'my-command']))
-    stdout, stderr = capfd.readouterr()
-    assert 'executable nd-my-command not found' in stderr
+        executable_factory('nd-my-command', '')
+        with pytest.raises(SystemExit):
+            help.main(['nd-help', 'my-command'])
+        stdout, stderr = capfd.readouterr()
+        assert 'executable nd-my-command could not be run' in stderr
 
 
-@pytest.mark.skipif(True, reason='need to update tool output')
-def test_with_namespace(executable_factory, capfd, mock_terminal_size):
-    """ Running help on a namespace shows help for each command in the namespace """
+class TestMultipleCommandHelp:
+    def test_with_command_with_empty_help(self, executable_factory, capfd, mock_terminal_size):
+        """ Handle the case where help returns empty string """
 
-    executable_factory('nd-my-namespace~my-command', make_help_command('my help message'))
-    help.main(['nd-help', 'my-namespace'])
-    stdout, stderr = capfd.readouterr()
-    assert 'my-namespace my-command' in stdout
-    assert 'my help message' in stdout
+        executable_factory('nd-my-command', make_help_command(''))
+        help.main(['nd-help'])
+        stdout, stderr = capfd.readouterr()
+        assert 'my-command   <help not found>' in stdout
 
+    def test_with_no_args(self, capfd, executable_factory, mock_terminal_size):
+        """ Running help without a command or namespace prints help of commands on path """
 
-def test_parses_argparse_generated_help(executable_factory, capfd, mock_terminal_size):
-    """ Print help for all commands parses argparse's description string its generated --help """
+        executable_factory('nd-my-namespace~my-command', make_help_command('my help message'))
+        help.main(['nd-help'])
+        stdout, stderr = capfd.readouterr()
+        assert 'usage: ' in stdout
+        assert 'my-namespace my-command   my help message' in stdout
 
-    executable_factory('nd-my-command', make_help_command(
-                        """usage: ...
+    def test_with_no_args_and_no_nd_commands(self, capfd, executable_factory):
+        """ Running help without args prints the usage message if no nd commands are on path """
 
-                        my help message
+        with pytest.raises(SystemExit):
+            help.main(['nd-help'])
+        stdout, stderr = capfd.readouterr()
+        assert 'No nd commands found on path. Check your $PATH.' in stderr
 
-                        """))
-    help.main(['nd-help'])
-    stdout, stderr = capfd.readouterr()
-    assert 'my help message' in stdout
+    def test_parses_argparse_generated_help(self, executable_factory, capfd, mock_terminal_size):
+        """ Print help for all commands parses argparse's description from its generated help """
 
+        executable_factory('nd-my-command', make_help_command("""\
+            usage: ...
 
-def test_parses_nonargparse_generated_help(executable_factory, capfd, mock_terminal_size):
-    """ Print help for all commands parses descriptions from generic commands' --help """
+            my help message"""))
+        help.main(['nd-help'])
+        stdout, stderr = capfd.readouterr()
+        assert 'my-command   my help message' in stdout
 
-    executable_factory('nd-my-command', make_help_command(
-                        """my help message
+    def test_parses_nonargparse_generated_help(self, executable_factory, capfd, mock_terminal_size):
+        """ Print help for all commands parses descriptions from generic commands' --help """
 
-                        """))
-    help.main(['nd-help'])
-    stdout, stderr = capfd.readouterr()
-    assert 'my help message' in stdout
+        executable_factory('nd-my-command', make_help_command('my help message'))
+        help.main(['nd-help'])
+        stdout, stderr = capfd.readouterr()
+        assert 'my-command   my help message' in stdout
+
+    def test_with_namespace(self, executable_factory, capfd, mock_terminal_size):
+        """ Running help on a namespace shows help for each command in the namespace """
+
+        executable_factory('nd-my-namespace~my-command', make_help_command('my help message'))
+        help.main(['nd-help', 'my-namespace'])
+        stdout, stderr = capfd.readouterr()
+        assert 'my-namespace my-command   my help message' in stdout
+
+    def test_with_failing_command(self, executable_factory, capfd, mock_terminal_size):
+        """ Handle the case where a command returns non-zero exit status """
+
+        executable_factory('nd-my-command', '#!/bin/bash\nexit 1')
+        help.main(['nd-help'])
+        stdout, stderr = capfd.readouterr()
+        assert 'my-command   <help not found>' in stdout
