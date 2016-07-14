@@ -1,0 +1,40 @@
+import os
+import subprocess
+
+import pytest  # flake8: noqa
+
+
+class TestRunAsChild:
+    def test_child_prints_to_file_descriptors(self, capfd, run_as_child):
+        run_as_child(lambda: os.execvp('echo', ['echo', 'my test output']))
+        stdout, stderr = capfd.readouterr()
+        assert stdout == 'my test output\n'
+
+
+    def test_raises_exception_on_child_error(self, run_as_child):
+        with pytest.raises(Exception) as error:
+            run_as_child(lambda: cant_find_this)
+        assert error.value.__class__.__name__ == 'ChildError'
+        assert 'is not defined' in str(error.value)
+        assert 'cant_find_this' in str(error.value)
+
+
+class TestExecutableFactory:
+    def test_executable_contents(self, executable_factory):
+        executable_factory('my-command', 'my content')
+        contents = subprocess.check_output('cat $(which my-command)', shell=True).decode('utf-8')
+        assert contents == 'my content'
+
+    def test_appends_to_path(self, executable_factory):
+        old_path = os.getenv('PATH')
+        executable_factory('my-command', '')
+        new_path = os.getenv('PATH')
+
+        assert old_path != new_path
+        assert old_path in new_path
+
+    def test_returns_correct_path(self, executable_factory):
+        path = executable_factory('my-command', 'my content')
+        with open(path) as f:
+            contents = f.read()
+        assert contents == 'my content'

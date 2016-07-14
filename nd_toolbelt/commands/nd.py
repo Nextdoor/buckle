@@ -33,7 +33,7 @@ class CommandNotFound(Exception):
     pass
 
 
-def separate_command_and_arguments(args):
+def split_command_and_arguments(args):
     """ Parses a list of arguments and separates a command from its arguments.
 
     Args:
@@ -88,8 +88,8 @@ def parse_args(argv, known_only=True):
         args = parser.parse_known_args(args_with_opts)[0]
 
     try:
-        args.command, args.args = separate_command_and_arguments(args.namespace +
-                                                                 [args.command] + args.args)
+        args.command, args.args = split_command_and_arguments(args.namespace +
+                                                              [args.command] + args.args)
     except CommandNotFound as e:
         sys.exit(message.error('ERROR: executable "{}" not found'.format(e)))
 
