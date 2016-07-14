@@ -92,9 +92,20 @@ class TestNdCheckSystemClock(object):
     def test_nd_continues_if_get_ntp_time_times_out(self, capfd):
         """ Handle ntp request for current time timing out """
 
-        nd.check_system_clock(check_clock_freq=0, ntp_timeout=0.00000000000001)
-        stdout, stderr = capfd.readouterr()
-        assert 'timed out.' in stderr
+        with mock.patch.object(socket, 'socket') as mock_socket:
+            mock_socket.return_value.recvfrom.side_effect = socket.timeout()
+            nd.check_system_clock(check_clock_freq=0)
+            stdout, stderr = capfd.readouterr()
+            assert 'timed out.' in stderr
+
+    def test_nd_continues_if_get_ntp_time_raises_socket_error(self, capfd):
+        """ Handle ntp request for socket raising an error """
+
+        with mock.patch.object(socket, 'socket') as mock_socket:
+            mock_socket.return_value.sendto.side_effect = socket.error()
+            nd.check_system_clock(check_clock_freq=0)
+            stdout, stderr = capfd.readouterr()
+            assert 'Error checking network time, exception: ' in stderr
 
 
 class TestSplitCommandAndArguments(object):
