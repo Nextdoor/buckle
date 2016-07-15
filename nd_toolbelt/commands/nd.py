@@ -15,10 +15,11 @@ import sys
 import tempfile
 import time
 
-from nd_toolbelt import autocomplete
 from nd_toolbelt import help_formatters
 from nd_toolbelt import ntp
 from nd_toolbelt import message
+from nd_toolbelt import path as toolbelt_path
+
 
 DEFAULT_NTP_HOST = 'time.apple.com'
 CHECK_CLOCK_TIMEOUT = 2  # Only wait for ntp for 2 seconds
@@ -28,34 +29,6 @@ MAX_CLOCK_SKEW_TIME = 60  # Time in seconds to tolerate for system clock offset
 def flush_file_descriptors():
     sys.stdout.flush()
     sys.stderr.flush()
-
-
-class CommandNotFound(Exception):
-    pass
-
-
-def split_command_and_arguments(args):
-    """ Parses a list of arguments and separates a command from its arguments.
-
-    Args:
-        args: a list of arguments to be parsed.
-
-    Returns:
-        A tuple of the command's full filename as a string and its arguments as a list of strings.
-
-    Raises:
-        CommandNotFound
-    """
-
-    # Try increasingly long command names until command can't be found
-    for cmd_end, arg in enumerate(args):
-        command = 'nd-' + '~'.join(args[:cmd_end+1])
-        possible_executables = autocomplete.get_executables_starting_with(command)
-
-        if possible_executables == [command]:
-            return command, args[cmd_end+1:]
-        elif not possible_executables:
-            raise CommandNotFound(command)
 
 
 def parse_args(argv, known_only=True):
@@ -82,7 +55,8 @@ def parse_args(argv, known_only=True):
 
     parser.add_argument('namespace', nargs='*', default=[],
                         help='The namespace(s) of the command to run.')
-    parser.add_argument('command', help='The desired app to run via the nd_toolbelt app!')
+    parser.add_argument('command', nargs='?',
+                        help='The desired app to run via the nd_toolbelt app!')
     parser.add_argument('args', nargs=argparse.REMAINDER,
                         help='Arguments to pass to the desired app')
 
@@ -94,10 +68,12 @@ def parse_args(argv, known_only=True):
         args = parser.parse_known_args(args_with_opts)[0]
 
     try:
-        args.command, args.args = split_command_and_arguments(args.namespace +
-                                                              [args.command] + args.args)
-    except CommandNotFound as e:
-        sys.exit(message.error('ERROR: executable "{}" not found'.format(e)))
+        args.namespace, command, args.args = toolbelt_path.split_path_and_command(
+            args.namespace + list(filter(None, [args.command])) + args.args, parse_help=True)
+    except toolbelt_path.CommandOrNamespaceNotFound as e:
+        sys.exit(message.error(str(e)))
+
+    args.command = 'nd-{}'.format('~'.join(args.namespace + [command]))
 
     return args
 
@@ -199,7 +175,10 @@ def main(argv=sys.argv):
         check_system_clock(args.check_clock_freq)
 
     flush_file_descriptors()
-    os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
+    try:
+        os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
+    except OSError:
+        message.error('"{}" failed to execute.'.format(args.command))
 
 if __name__ == "__main__":
     main(sys.argv)

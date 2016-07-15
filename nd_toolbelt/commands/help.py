@@ -13,24 +13,23 @@ import re
 import subprocess
 import sys
 
+from nd_toolbelt import autocomplete
 from nd_toolbelt import help_formatters
 from nd_toolbelt import message
-from nd_toolbelt import autocomplete
+from nd_toolbelt import path as toolbelt_path
 
 
 def truncate(s, length=75):
     return s[:length - 3] + (s[length - 3:] and '...')
 
 
-def print_help_for_all_commands(parser, args, namespace=()):
-    prefix = 'nd-' + '~'.join(namespace)
+def print_help_for_all_commands(parser, args, path=()):
+    prefix = 'nd-' + '~'.join(path)
     autocompleted_commands = autocomplete.get_executables_starting_with(prefix)
 
     nd_command_list = sorted(set(autocompleted_commands) - set(args.exclude))
     if not nd_command_list:
-        if namespace:
-            sys.exit(message.error('executable {} not found'.format(prefix)))
-        else:
+        if not path:
             sys.exit(message.error('No nd commands found on path. Check your $PATH.'))
 
     command_help_hash = {}
@@ -74,26 +73,29 @@ def main(argv=sys.argv):
 
         Also run 'nd readme' for more details about the ND Toolbelt project.
         """)
-    parser.add_argument('command', nargs='*', help='name of nd sub-command')
+    parser.add_argument('path', nargs='*', help='name of nd sub-command')
     parser.add_argument('--exclude', action='append', default=['nd-memcache-top'],
                         help='nd commands to exclude from help')
     args = parser.parse_args(argv[1:])
 
-    command = 'nd-' + '~'.join(args.command)  # Handle namespaces if they exist
+    path = 'nd-' + '~'.join(args.path)  # Handle namespaces if they exist
 
-    if command in args.exclude:
-        sys.exit(message.error('executable {} excluded from nd help'.format(command)))
+    if path in args.exclude:
+        sys.exit(message.error('executable {} excluded from nd help'.format(path)))
 
     try:
-        app_path = subprocess.check_output(['which', command]).strip()
-    except subprocess.CalledProcessError:
-        # Check if help is being called for a given namespace instead of a specific command
-        print_help_for_all_commands(parser, args, namespace=args.command)
-    else:
+        namespace, command, _ = toolbelt_path.split_path_and_command(args.path)
+    except toolbelt_path.CommandOrNamespaceNotFound as e:
+        sys.exit(message.error(str(e)))
+
+    if command:
+        path = 'nd-{}'.format('~'.join(namespace + [command]))
         try:
-            os.execv(app_path, [command, '--help'])
-        except:
-            sys.exit(message.error('executable {} could not be run'.format(command)))
+            os.execvp(path, [path, '--help'])
+        except OSError:
+            sys.exit(message.error('executable {} could not be run'.format(path)))
+    else:
+        print_help_for_all_commands(parser, args, path=args.path)
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -19,7 +19,7 @@ class TestCommandHelp:
         """ Print help for all commands parses descriptions from generic commands' --help """
 
         executable_factory('nd-my-command', '#!/bin/echo')
-        run_as_child(lambda: help.main(['nd-help', 'my-command']))
+        run_as_child(help.main, ['nd-help', 'my-command'])
         stdout, stderr = capfd.readouterr()
         assert '--help' in stdout
 
@@ -29,16 +29,26 @@ class TestCommandHelp:
         with pytest.raises(SystemExit):
             help.main(['nd-help', 'my-missing-command'])
         stdout, stderr = capfd.readouterr()
-        assert "executable nd-my-missing-command not found" in stderr
+        assert "Command 'my-missing-command' not found." in stderr
 
-    def test_with_command_cannot_be_run(self, capfd, executable_factory):
-        """ Handle the case where a command cannot be run """
+    # def test_with_command_cannot_be_run(self, capfd, executable_factory, run_as_child):
+    #     """ Handle the case where a command cannot be run """
+    #
+    #     executable_factory('nd-my-command', '')
+    #     with pytest.raises(SystemExit):
+    #         run_as_child(help.main, ['nd-help', 'my-command'])
+    #     stdout, stderr = capfd.readouterr()
+    #     assert 'executable nd-my-command could not be run' in stderr
 
-        executable_factory('nd-my-command', '')
+    def test_command_or_namespace_help_not_found(self, capfd, executable_factory):
+        """ Handle being given a command or namespace for help not in path """
+
+        executable_factory('nd-my-namespace~my-command')
+
         with pytest.raises(SystemExit):
-            help.main(['nd-help', 'my-command'])
+            help.main(['nd', 'my-namespace', 'missing', 'help'])
         stdout, stderr = capfd.readouterr()
-        assert 'executable nd-my-command could not be run' in stderr
+        assert "Command or namespace 'missing' not found in 'my-namespace'" in stderr
 
 
 class TestNamespaceHelp:

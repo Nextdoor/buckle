@@ -28,6 +28,17 @@ setup() {
     [[ "$result" = "-a -b -c --f test" ]]
 }
 
+@test "'nd <namespace>' runs 'nd-help <namespace>'" {
+    _setup_test_directory
+    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-my-namespace~my-command
+    echo "echo my help output" >> $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    result="$(nd my-namespace)"
+    expected="$(nd-help my-namespace)"
+    [[ "$result" = "$expected" && -n "$expected" ]]
+}
+
 @test "'nd <namespace> <command>' runs 'nd-<namespace>~<command>'" {
     _setup_test_directory
     echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-namespace-test~command-test
@@ -218,7 +229,7 @@ setup() {
     [[ "$result" == *"ERROR: nd: executable nd-my-excluded-command excluded from nd help"* ]]
 }
 
-@test "'nd <namespace> <subnamespace> help' autocomplete returns matches" {
+@test "'nd <namespace> <subnamespace> help <tab>' shows subnamespace commands" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child-namespace~my-command
@@ -232,7 +243,7 @@ setup() {
     [[ "child-namespace" = "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd help' autocomplete returns namespaces" {
+@test "'nd help <tab>' shows all namespaces" {
     _setup_test_directory
 
     touch $TEST_DIRECTORY/nd-my-namespace~my-command
@@ -244,6 +255,43 @@ setup() {
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
     [[ "my-namespace" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd help help <tab>' does not include 'help' again in the autocomplete choices" {
+    COMP_WORDS=("nd" "help" "help" "")
+    COMP_CWORD=3
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ -z "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> <tab>' does not include 'help' in the autocomplete choices" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    COMP_WORDS=("nd" "my-namespace" "")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "my-command" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> h<tab>' shows 'help' in the autocomplete options" {
+    _setup_test_directory
+
+    touch $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    COMP_WORDS=("nd" "my-namespace" "h")
+    COMP_CWORD=2
+
+    eval "$(nd init -)"
+    _ndtoolbelt_autocomplete_hook
+    [[ "help" = "${COMPREPLY[*]}" ]]
 }
 
 @test "'nd help' returns help of all nd commands" {
@@ -267,7 +315,7 @@ setup() {
 
     result=$(nd help)
     [[ $result == *"Help for command nd-my-command"* ]]
-    [[ $result == *"Help for command nd-my-namespace"* ]]
+    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
 }
 
 @test "'nd help <namespace>' returns help for commands in the namespace" {
@@ -277,7 +325,38 @@ setup() {
     chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
 
     result=$(nd help my-namespace)
-    [[ $result == *"Help for command nd-my-namespace"* ]]
+    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
+}
+
+@test "'nd <namespace> help' returns help for the commands in the namespace" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    result=$(nd my-namespace help)
+    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
+}
+
+@test "'nd <namespace> help <command>' returns help for the commands in the namespace" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
+
+    result=$(nd my-namespace help my-command)
+    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
+}
+
+@test "'nd <namespace> help <subnamespace>' returns help for the commands in the namespace" {
+    _setup_test_directory
+
+    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~subnamespace~my-command
+    chmod +x $TEST_DIRECTORY/nd-my-namespace~subnamespace~my-command
+
+    result=$(nd my-namespace help subnamespace)
+    [[ "$result" == *"my-namespace subnamespace my-command"* ]]
+    [[ "$result" == *"Help for command"* ]]
 }
 
 @test "'nd help <command>' runs '<command> --help'" {

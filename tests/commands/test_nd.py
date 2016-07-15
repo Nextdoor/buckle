@@ -20,36 +20,66 @@ class TestNdCommand:
         stdout, stderr = capfd.readouterr()
         assert '--no-update: not allowed with argument --update' in stderr
 
-    def test_with_no_args(self, capfd):
+    def test_with_no_args(self, capfd, executable_factory, run_as_child):
         """ Handle nd being passed no command or namespace """
-        with pytest.raises(SystemExit):
-            nd.main(['nd', '--no-update', '--no-clock-check'])
+
+        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        run_as_child(nd.main, ['nd'])
         stdout, stderr = capfd.readouterr()
-        assert 'error: ' in stderr
+        assert '' in stdout
 
     def test_with_command(self, capfd, executable_factory, run_as_child):
-        """ Handle executing nd command on path """
+        """ Handle executing nd command in path """
 
         executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
-        run_as_child(lambda: nd.main(['nd-help', 'my-command']))
+        run_as_child(nd.main, ['nd', 'my-command'])
         stdout, stderr = capfd.readouterr()
         assert stdout == 'my command output\n'
 
     def test_command_with_argument(self, capfd, executable_factory, run_as_child):
+        """ Handle executing nd command in path with arguments passed from nd """
 
-        """ Handle executing nd command on path with arguments passed from nd """
         executable_factory('nd-my-command', '#!/bin/echo')
-        run_as_child(lambda: nd.main(['nd-help', 'my-command', '--my-option', 'my-argument']))
+        run_as_child(nd.main, ['nd', 'my-command', '--my-option', 'my-argument'])
         stdout, stderr = capfd.readouterr()
         assert '--my-option my-argument' in stdout
 
-    def test_command_not_found(self, capfd):
+    def test_with_namespace(self, capfd, executable_factory, run_as_child):
+        """ Handle executing nd command in path """
 
-        """ Handle being given command not found on path """
-        with pytest.raises(SystemExit):
-            nd.main(['nd', 'my-command'])
+        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        executable_factory('nd-my-namespace~my-command')
+
+        run_as_child(nd.main, ['nd', 'my-namespace'])
         stdout, stderr = capfd.readouterr()
-        assert 'executable "nd-my-command" not found' in stderr
+        assert stdout == 'my-namespace'
+
+    def test_help_for_command(self, capfd, executable_factory, run_as_child):
+        """ Handle executing nd-help for command in path """
+
+        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        run_as_child(nd.main, ['nd', 'help', 'my-command'])
+        stdout, stderr = capfd.readouterr()
+        assert stdout == 'my-command'
+
+    def test_command_or_namespace_not_found(self, capfd):
+        """ Handle being given a command or namespace not in path """
+
+        with pytest.raises(SystemExit):
+            nd.main(['nd', 'missing'])
+        stdout, stderr = capfd.readouterr()
+        assert "Command 'missing' not found." in stderr
+
+    def test_command_or_namespace_help_not_found(self, capfd, executable_factory):
+        """ Handle being given a command or namespace for help not in path """
+
+        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        executable_factory('nd-my-namespace~my-command')
+
+        with pytest.raises(SystemExit):
+            nd.main(['nd', 'my-namespace', 'missing', 'help'])
+        stdout, stderr = capfd.readouterr()
+        assert "Command or namespace 'missing' not found in 'my-namespace'" in stderr
 
 
 class TestNdCheckSystemClock(object):
@@ -108,44 +138,3 @@ class TestNdCheckSystemClock(object):
             nd.check_system_clock(check_clock_freq=0)
             stdout, stderr = capfd.readouterr()
             assert 'Error checking network time, exception: ' in stderr
-
-
-class TestSplitCommandAndArguments(object):
-    """ Handles lists of arguments and uses bash autocomplete return the command and args """
-
-    def test_simple_command_name(self, executable_factory):
-        """ Handle splitting a command on the path by itself without namespaces or arguments """
-
-        executable_factory('nd-my-command', '')
-        cmd_list_result, args_list_result = nd.split_command_and_arguments(['my-command'])
-        assert cmd_list_result == 'nd-my-command'
-        assert args_list_result == []
-
-    def test_command_and_arguments_get_split(self, executable_factory):
-        """ Handle splitting a command on the path with namespaces and arguments"""
-
-        executable_factory('nd-my-namespace~my-subnamespace~my-command', '')
-
-        args_list = ['my-namespace', 'my-subnamespace', 'my-command', 'arg1', 'arg2']
-        cmd_list_result, args_list_result = nd.split_command_and_arguments(args_list)
-
-        assert cmd_list_result == 'nd-my-namespace~my-subnamespace~my-command'
-        assert args_list_result == ['arg1', 'arg2']
-
-    def test_no_arguments(self, executable_factory):
-        """ Handle splitting only a command's namespace without arguments  """
-
-        executable_factory('nd-my-namespace~my-subnamespace~my-command', '')
-
-        args_list = ['my-namespace', 'my-subnamespace', 'my-command']
-        cmd_list_result, args_list_result = nd.split_command_and_arguments(args_list)
-
-        assert cmd_list_result == 'nd-my-namespace~my-subnamespace~my-command'
-        assert args_list_result == []
-
-    def test_with_missing_command(self):
-        """ Handle the list of arguments not containing a command that is in the path """
-
-        with pytest.raises(nd.CommandNotFound) as e:
-            nd.split_command_and_arguments(['my-command'])
-            assert str(e) == 'my-command'
