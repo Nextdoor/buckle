@@ -1,5 +1,7 @@
 import fcntl
+import functools
 import io
+import mock
 import os
 import stat
 import traceback
@@ -26,11 +28,25 @@ class ChildError(Exception):
     pass
 
 
-@pytest.fixture
-def run_as_child():
-    """ Returns a callable that runs a function as a child process and waits for it to complete """
+class CannotExecAsTestRunner(Exception):
+    pass
 
-    def runner(func):
+
+@pytest.yield_fixture(autouse=True)
+def run_as_child():
+    """ Returns a callable that runs a function as a child process and waits for it to complete.
+    Also raises an exception if exec(v,vp) is called from the parent.  """
+
+    def prevent_execv_as_test_runner(func):
+        test_runner_pid = os.getpid()
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            if os.getpid() == test_runner_pid:
+                raise CannotExecAsTestRunner('Use run_as_child fixture if you need to call exec')
+            return func(*args, **kwargs)
+        return wrapped
+
+    def child_runner(func):
         error_pipe_in, error_pipe_out = os.pipe()
         fcntl.fcntl(error_pipe_in, fcntl.F_SETFL, os.O_NONBLOCK)  # prevents blocking
 
@@ -55,4 +71,6 @@ def run_as_child():
             finally:
                 os.close(error_pipe_out)
 
-    return runner
+    with mock.patch.object(os, 'execv', prevent_execv_as_test_runner(os.execv)), \
+         mock.patch.object(os, 'execvp', prevent_execv_as_test_runner(os.execvp)):
+        yield child_runner

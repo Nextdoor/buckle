@@ -13,12 +13,19 @@ class TestRunAsChild:
         stdout, stderr = capfd.readouterr()
         assert stdout == 'my test output\n'
 
-
     def test_raises_exception_on_child_error(self, run_as_child):
         with pytest.raises(ChildError) as error:
             run_as_child(lambda: cant_find_this)
         assert 'is not defined' in str(error.value)
         assert 'cant_find_this' in str(error.value)
+
+    def test_cannot_execv_as_test_runner(self, run_as_child):
+        with pytest.raises(CannotExecAsTestRunner) as error:
+            os.execv(['/bin/bash'])
+
+    def test_cannot_execvp_as_test_runner(self, run_as_child):
+        with pytest.raises(CannotExecAsTestRunner) as error:
+            os.execvp(['bash'])
 
 
 class TestExecutableFactory:
