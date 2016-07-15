@@ -1,8 +1,11 @@
 import os
 import subprocess
+import sys
 
 import pytest  # flake8: noqa
 
+sys.path.append(os.path.abspath('.'))
+from fixtures import *
 
 class TestRunAsChild:
     def test_child_prints_to_file_descriptors(self, capfd, run_as_child):
@@ -12,9 +15,8 @@ class TestRunAsChild:
 
 
     def test_raises_exception_on_child_error(self, run_as_child):
-        with pytest.raises(Exception) as error:
+        with pytest.raises(ChildError) as error:
             run_as_child(lambda: cant_find_this)
-        assert error.value.__class__.__name__ == 'ChildError'
         assert 'is not defined' in str(error.value)
         assert 'cant_find_this' in str(error.value)
 
