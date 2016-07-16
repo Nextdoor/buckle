@@ -1,32 +1,9 @@
 #!/usr/bin/env bats
 
+load test_helpers
+
 setup() {
-    _setup_tmp_directory
-
-    # Create a fake git root so update checks happen quickly
-    fake_root=$TMPDIR/fake-root
-    mkdir $fake_root
-    touch $fake_root/.updated
-    export ND_TOOLBELT_ROOT=$fake_root
-
-    # Pretend the clock was checked recently so we don't repeat the check on each test
-    touch $TMPDIR/.nd_toolbelt_clock_last_checked
-}
-
-_setup_tmp_directory() {
-    export TMPDIR="$(mktemp -d nd-toolbelt_test_tmp.XXXXX --tmpdir)"
-    _append_to_exit_trap "rm -rf $TMPDIR"
-}
-
-_setup_test_directory() {
-    TEST_DIRECTORY="$(mktemp -d nd-toolbelt_test.XXXXX --tmpdir)"
-    _append_to_exit_trap "rm -rf $TEST_DIRECTORY"
-    PATH=$TEST_DIRECTORY:$PATH
-}
-
-_append_to_exit_trap() {
-    # Makes sure to run the existing exit handler
-    trap "$1; $(trap -p EXIT | sed -r "s/trap.*?'(.*)' \w+$/\1/")" EXIT
+    _shared_setup
 }
 
 @test "'nd version' matches 'nd-version'" {
