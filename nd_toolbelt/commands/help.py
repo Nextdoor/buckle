@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 
+from nd_toolbelt import help_formatters
 from nd_toolbelt import message
 from nd_toolbelt import autocomplete
 
@@ -66,8 +67,13 @@ def print_help_for_all_commands(parser, args, namespace=()):
 
 
 def main(argv=sys.argv):
-    parser = argparse.ArgumentParser(description='ND Toolbelt Help Tool',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=help_formatters.DedentDescriptionArgumentDefaultsHelpFormatter,
+        description="""\
+        ND Toolbelt Help
+
+        Also run 'nd readme' for more details about the ND Toolbelt project.
+        """)
     parser.add_argument('command', nargs='*', help='name of nd sub-command')
     parser.add_argument('--exclude', action='append', default=['nd-memcache-top'],
                         help='nd commands to exclude from help')

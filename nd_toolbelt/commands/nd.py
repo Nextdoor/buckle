@@ -16,6 +16,7 @@ import tempfile
 import time
 
 from nd_toolbelt import autocomplete
+from nd_toolbelt import help_formatters
 from nd_toolbelt import ntp
 from nd_toolbelt import message
 
@@ -58,8 +59,13 @@ def split_command_and_arguments(args):
 
 
 def parse_args(argv, known_only=True):
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description='ND Toolbelt centralizes ND commands and tools.')
+    parser = argparse.ArgumentParser(
+        formatter_class=help_formatters.DedentDescriptionArgumentDefaultsHelpFormatter,
+        description="""\
+        ND Toolbelt centralizes ND commands and tools.
+
+        Run 'nd help or 'nd readme' for more details about how to use and extend the ND Toolbelt.\
+        """)
 
     update_group = parser.add_mutually_exclusive_group()
     update_group.add_argument('--update', action='store_true', dest='force_update',

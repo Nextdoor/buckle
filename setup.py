@@ -12,6 +12,7 @@ setup(
     scripts=['bin/nd',
              'bin/nd-init',
              'bin/nd-help',
+             'bin/nd-readme',
              'bin/nd-version',
              ],
     test_suite="tests",
