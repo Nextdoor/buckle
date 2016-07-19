@@ -34,8 +34,13 @@ class CannotExecAsTestRunner(Exception):
 
 @pytest.yield_fixture(autouse=True)
 def run_as_child():
-    """ Returns a callable that runs a function as a child process and waits for it to complete.
-    Also raises an exception if exec(v,vp) is called from the parent.  """
+    """ A fixture that yields a callable for running a function as a child process.
+
+    Yields:
+        callable - Calling callable(func, *args, **kwargs) runs the function in a child process
+                   and waits for a to complete.  Raises ChildError with details of any exceptions
+                   that occur in the child process.
+    """
 
     def prevent_execv_as_test_runner(func):
         test_runner_pid = os.getpid()
@@ -46,7 +51,7 @@ def run_as_child():
             return func(*args, **kwargs)
         return wrapped
 
-    def child_runner(func):
+    def child_runner(func, *args, **kwargs):
         error_pipe_in, error_pipe_out = os.pipe()
         fcntl.fcntl(error_pipe_in, fcntl.F_SETFL, os.O_NONBLOCK)  # prevents blocking
 
@@ -54,7 +59,7 @@ def run_as_child():
         if child == 0:
             status = 0
             try:
-                func()
+                func(*args, **kwargs)
             except:
                 with os.fdopen(error_pipe_out, 'w') as error_fd:
                     traceback.print_exc(None, error_fd)

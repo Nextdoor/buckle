@@ -9,7 +9,7 @@ from fixtures import *
 
 class TestRunAsChild:
     def test_child_prints_to_file_descriptors(self, capfd, run_as_child):
-        run_as_child(lambda: os.execvp('echo', ['echo', 'my test output']))
+        run_as_child(os.execvp, 'echo', ['echo', 'my test output'])
         stdout, stderr = capfd.readouterr()
         assert stdout == 'my test output\n'
 
