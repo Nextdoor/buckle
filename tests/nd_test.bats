@@ -14,44 +14,44 @@ setup() {
 
 @test "'nd init -' returns 0 exit code" {
     actual="$(nd init -)"
-    expected="$(cat nd_toolbelt/nd-init.sh)"  # TODO(hramos): Make not relative path?
+    expected="$(cat $BATS_TEST_DIRNAME/../nd_toolbelt/nd-init.sh)"
     [[ "$actual" = "$expected" && -n "$expected" ]]
 }
 
 @test "'nd <command>' runs 'nd-<command>'" {
-    _setup_test_directory
-    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-command-test
-    echo "echo \$*" >> $TEST_DIRECTORY/nd-command-test
-    chmod +x $TEST_DIRECTORY/nd-command-test
+	make_executable_command nd-my-command <<- 'EOF'
+		#!/usr/bin/env bash
+		echo "$*"
+EOF
 
-    result="$(nd command-test -a -b -c --f test)"
+    result="$(nd my-command -a -b -c --f test)"
+    echo $result
     [[ "$result" = "-a -b -c --f test" ]]
 }
 
 @test "'nd <namespace>' runs 'nd-help <namespace>'" {
-    _setup_test_directory
-    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-my-namespace~my-command
-    echo "echo my help output" >> $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    result="$(nd my-namespace)"
+	make_executable_command nd-my-namespace~my-command <<- 'EOF'
+		#!/usr/bin/env bash
+		echo my help output
+EOF
+    actual="$(nd my-namespace)"
     expected="$(nd-help my-namespace)"
-    [[ "$result" = "$expected" && -n "$expected" ]]
+    [[ "$actual" = "$expected" && "$actual" = *"my help output"* ]]
 }
 
 @test "'nd <namespace> <command>' runs 'nd-<namespace>~<command>'" {
-    _setup_test_directory
-    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-namespace-test~command-test
-    echo "echo \$*" >> $TEST_DIRECTORY/nd-namespace-test~command-test
-    chmod +x $TEST_DIRECTORY/nd-namespace-test~command-test
+	make_executable_command nd-my-namespace~my-command <<- 'EOF'
+		#!/usr/bin/env bash
+		echo "$*"
+EOF
 
-    result="$(nd namespace-test command-test -a -b -c --f test)"
-    [[ "$result" = "-a -b -c --f test" ]]
+    result="$(nd my-namespace my-command -a -b -c --f arg)"
+    [[ "$result" = "-a -b -c --f arg" ]]
 }
 
 @test "nd toolbelt rejects options not handled" {
-    nd -random-test-option version && failed=1
-    [[ -z "$failed" ]]
+    run nd -random-test-option version
+    [[ $status != 0 ]]
 }
 
 @test "Options from \$ND_TOOLBELT_OPTS are used by nd" {
@@ -292,98 +292,6 @@ setup() {
     eval "$(nd init -)"
     _ndtoolbelt_autocomplete_hook
     [[ "help" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd help' returns help of all nd commands" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-command
-    chmod +x $TEST_DIRECTORY/nd-my-command
-
-    result=$(nd help)
-    [[ $result == *"Help for command nd-my-command"* ]]
-}
-
-@test "'nd help' returns help of nd namespaced commands" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-command
-    chmod +x $TEST_DIRECTORY/nd-my-command
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    result=$(nd help)
-    [[ $result == *"Help for command nd-my-command"* ]]
-    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
-}
-
-@test "'nd help <namespace>' returns help for commands in the namespace" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    result=$(nd help my-namespace)
-    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
-}
-
-@test "'nd <namespace> help' returns help for the commands in the namespace" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    result=$(nd my-namespace help)
-    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
-}
-
-@test "'nd <namespace> help <command>' returns help for the commands in the namespace" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    result=$(nd my-namespace help my-command)
-    [[ $result == *"Help for command nd-my-namespace~my-command"* ]]
-}
-
-@test "'nd <namespace> help <subnamespace>' returns help for the commands in the namespace" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-namespace~subnamespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~subnamespace~my-command
-
-    result=$(nd my-namespace help subnamespace)
-    [[ "$result" == *"my-namespace subnamespace my-command"* ]]
-    [[ "$result" == *"Help for command"* ]]
-}
-
-@test "'nd help <command>' runs '<command> --help'" {
-    actual=$(nd help init)
-    expected=$(nd-init --help)
-    [[ "$actual" = "$expected" && -n "$actual" ]]
-}
-
-@test "'nd help' returns '<help not found>' if a command's help returns non-zero exit status" {
-    _setup_test_directory
-
-    echo "#!/usr/bin/env bash" > $TEST_DIRECTORY/nd-command-test
-    echo "exit 1" >> $TEST_DIRECTORY/nd-command-test
-    chmod +x $TEST_DIRECTORY/nd-command-test
-
-    result=$(nd help)
-    echo "$result" | grep -E "command-test\s+<help not found>"
-}
-
-@test "'nd help' returns '<help not found>' if a command's help can't be parsed" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-command-test
-    chmod +x $TEST_DIRECTORY/nd-command-test
-
-    result=$(nd help)
-    echo "$result" | grep -E "command-test\s+<help not found>"
 }
 
 @test "nd creates the '.updated' file if it does not exist" {
