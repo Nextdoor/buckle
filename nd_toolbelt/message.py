@@ -19,8 +19,8 @@ LEVEL_COLOR_MAP = {
 }
 
 
-def write(msg, level, prefix='nd:'):
-    """ Prints a message to stderr with a color assigned based on its level. Informational messages
+def format(msg, level, prefix='nd:'):
+    """ Escapes a message with a color assigned based on its level. Informational messages
     are green, warnings are yellow, and errors are red. The given prefix is prepended to the message
     for namespace identification. If $TERM is not set, no color escape sequences are added.
 
@@ -34,7 +34,20 @@ def write(msg, level, prefix='nd:'):
     if os.getenv('TERM'):
         msg = LEVEL_COLOR_MAP[level] + msg + EXIT
 
-    print(msg, file=sys.stderr)
+    return msg
+
+
+def write(msg, level, prefix='nd:'):
+    """ Prints a message to stderr with a color assigned based on its level. Informational messages
+    are green, warnings are yellow, and errors are red. The given prefix is prepended to the message
+    for namespace identification. If $TERM is not set, no color escape sequences are added.
+
+    Args:
+        msg: Given message
+        level: stderr 'level' priority. Must be INFO, WARNING, or ERROR.
+        prefix: Given namespace of the project calling this library.
+    """
+    print(format(msg, level, prefix=prefix), file=sys.stderr)
 
 
 def info(msg, **kwargs):
@@ -47,3 +60,7 @@ def warning(msg, **kwargs):
 
 def error(msg, **kwargs):
     write(msg, ERROR, **kwargs)
+
+
+def format_error(msg, **kwargs):
+    return format(msg, ERROR, **kwargs)

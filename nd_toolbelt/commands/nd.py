@@ -54,11 +54,11 @@ def parse_args(argv, known_only=True):
                         help='Minimum number of seconds between clock checks')
 
     parser.add_argument('namespace', nargs='*', default=[],
-                        help='The namespace(s) of the command to run.')
+                        help='The namespace path of the command to run.')
     parser.add_argument('command', nargs='?',
-                        help='The desired app to run via the nd_toolbelt app!')
+                        help='The command to run from the ND Toolbelt suite.')
     parser.add_argument('args', nargs=argparse.REMAINDER,
-                        help='Arguments to pass to the desired app')
+                        help='Arguments to pass to the command')
 
     args_with_opts = shlex.split(os.getenv('ND_TOOLBELT_OPTS', '')) + list(argv[1:])
 
@@ -67,13 +67,25 @@ def parse_args(argv, known_only=True):
     else:
         args = parser.parse_known_args(args_with_opts)[0]
 
-    try:
-        args.namespace, command, args.args = toolbelt_path.split_path_and_command(
-            args.namespace + list(filter(None, [args.command])) + args.args, parse_help=True)
-    except toolbelt_path.CommandOrNamespaceNotFound as e:
-        sys.exit(message.error(str(e)))
+    all_args = args.namespace + list(filter(None, [args.command])) + args.args
 
-    args.command = 'nd-{}'.format('~'.join(args.namespace + [command]))
+    try:
+        namespace, command, command_args = toolbelt_path.split_path_and_command(all_args)
+    except toolbelt_path.CommandOrNamespaceNotFound as e:
+        # Send help commands to nd-help
+        if e.path[-1] == 'help':
+            namespace = list(e.path[:-1])
+            extra_args = all_args[len(e.path):]  # Let nd-help to deal with the extra args
+            namespace, command, command_args = ([], 'help', namespace + extra_args)
+        else:
+            sys.exit(message.format_error(str(e)))
+    else:
+        # Call nd-help on the namespace if we have no command
+        if not command:
+            namespace, command, command_args = ([], 'help', namespace)
+
+    args.namespace, args.command, args.args = (
+        namespace, 'nd-{}'.format('~'.join(namespace + [command])), command_args)
 
     return args
 
@@ -178,7 +190,7 @@ def main(argv=sys.argv):
     try:
         os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
     except OSError:
-        sys.exit(message.error("Command '{}' could not be run".format(args.command)))
+        sys.exit(message.format_error("Command '{}' could not be run".format(args.command)))
 
 if __name__ == "__main__":
     main(sys.argv)

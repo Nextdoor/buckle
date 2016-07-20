@@ -21,12 +21,11 @@ class CommandNotFound(CommandOrNamespaceNotFound):
     prefix = 'Command'
 
 
-def split_path_and_command(args, parse_help=False):
+def split_path_and_command(args):
     """ Parses a list of arguments and separates a command from its arguments and namespace.
 
     Args:
         args: a list of arguments to be parsed.
-        parse_help: a bool determining whether to convert path to a help command
 
     Returns:
         Tuple:
@@ -48,10 +47,6 @@ def split_path_and_command(args, parse_help=False):
 
         if possible_executables == [prefix]:
             return path, arg, rest
-        elif parse_help and arg == 'help':
-            return [], 'help', path + rest
-        elif parse_help and possible_executables and not rest:
-            return [], 'help', path + [arg]  # 'nd help' on a namespace
         elif possible_executables and not rest:
             return path + [arg], None, []  # Namespace only
         elif not possible_executables:
@@ -60,4 +55,4 @@ def split_path_and_command(args, parse_help=False):
             else:
                 raise CommandNotFound(path + [arg])
 
-    return [], 'help' if parse_help else None, []  # Handle being called with no arguments
+    return [], None, []  # Handle being called with no arguments

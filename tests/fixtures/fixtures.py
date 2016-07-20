@@ -9,6 +9,18 @@ import traceback
 import pytest  # flake8: noqa
 
 
+@pytest.fixture()
+def readout(capfd):
+    """ Capture stdout """
+    return lambda: capfd.readouterr()[0]
+
+
+@pytest.fixture()
+def readerr(capfd):
+    """ Capture stderr """
+    return lambda: capfd.readouterr()[1]
+
+
 @pytest.fixture
 def executable_factory(monkeypatch, tmpdir):
     """ Factory for creating executable files from contents """

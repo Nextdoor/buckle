@@ -5,8 +5,8 @@ from fixtures import executable_factory, run_as_child
 from nd_toolbelt import path
 
 
-def split(*args, **kwargs):
-    return path.split_path_and_command(args, **kwargs)
+def split(*args):
+    return path.split_path_and_command(args)
 
 
 class TestSplitPathAndCommand(object):
@@ -52,19 +52,3 @@ class TestSplitPathAndCommand(object):
         with pytest.raises(path.CommandOrNamespaceNotFound) as e:
             split('missing-namespace', 'missing-command')
         assert e.value.path == ('missing-namespace',)
-
-    def test_with_help(self, executable_factory):
-        """ Handle being given a command or namespaces for help """
-
-        executable_factory('nd-help')
-        executable_factory('nd-my-namespace~my-command')
-
-        assert ([], 'help', ['missing']) == split('help', 'missing', parse_help=True)
-        assert ([], 'help', ['my-namespace', 'missing']) == \
-               split('help', 'my-namespace', 'missing', parse_help=True)
-        assert ([], 'help', ['my-namespace', 'missing']) == \
-               split('my-namespace', 'help', 'missing', parse_help=True)
-
-        with pytest.raises(path.CommandOrNamespaceNotFound) as e:
-            split('my-namespace', 'missing', 'help', parse_help=True)
-        assert e.value.path == ('my-namespace', 'missing')
