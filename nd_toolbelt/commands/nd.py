@@ -178,7 +178,7 @@ def main(argv=sys.argv):
     try:
         os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
     except OSError:
-        message.error('"{}" failed to execute.'.format(args.command))
+        sys.exit(message.error("Command '{}' could not be run".format(args.command)))
 
 if __name__ == "__main__":
     main(sys.argv)

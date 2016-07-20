@@ -31,14 +31,15 @@ class TestCommandHelp:
         stdout, stderr = capfd.readouterr()
         assert "Command 'my-missing-command' not found." in stderr
 
-    # def test_with_command_cannot_be_run(self, capfd, executable_factory, run_as_child):
-    #     """ Handle the case where a command cannot be run """
-    #
-    #     executable_factory('nd-my-command', '')
-    #     with pytest.raises(SystemExit):
-    #         run_as_child(help.main, ['nd-help', 'my-command'])
-    #     stdout, stderr = capfd.readouterr()
-    #     assert 'executable nd-my-command could not be run' in stderr
+    def test_with_command_cannot_be_run(self, capfd, executable_factory, run_as_child):
+        """ Handle the case where a command cannot be run """
+
+        executable_factory('nd-my-command', '')
+        with pytest.raises(run_as_child.ChildError) as exc_info:
+            run_as_child(help.main, ['nd-help', 'my-command'])
+        stdout, stderr = capfd.readouterr()
+        assert 'SystemExit' in str(exc_info.value)
+        assert "Command 'nd-my-command' could not be run" in stderr
 
     def test_command_or_namespace_help_not_found(self, capfd, executable_factory):
         """ Handle being given a command or namespace for help not in path """

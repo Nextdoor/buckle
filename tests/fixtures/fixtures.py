@@ -24,23 +24,21 @@ def executable_factory(monkeypatch, tmpdir):
     return factory
 
 
-class ChildError(Exception):
-    pass
-
-
-class CannotExecAsTestRunner(Exception):
-    pass
-
-
 @pytest.yield_fixture(autouse=True)
 def run_as_child():
     """ A fixture that yields a callable for running a function as a child process.
 
     Yields:
         callable - Calling callable(func, *args, **kwargs) runs the function in a child process
-                   and waits for a to complete.  Raises ChildError with details of any exceptions
-                   that occur in the child process.
+                   and waits for a to complete.  Raises callable.ChildError with details of any
+                   exceptions that occur in the child process.
     """
+
+    class ChildError(Exception):
+        pass
+
+    class CannotExecAsTestRunner(Exception):
+        pass
 
     def prevent_execv_as_test_runner(func):
         test_runner_pid = os.getpid()
@@ -78,4 +76,6 @@ def run_as_child():
 
     with mock.patch.object(os, 'execv', prevent_execv_as_test_runner(os.execv)), \
          mock.patch.object(os, 'execvp', prevent_execv_as_test_runner(os.execvp)):
+        child_runner.CannotExecAsTestRunner = CannotExecAsTestRunner
+        child_runner.ChildError = ChildError
         yield child_runner

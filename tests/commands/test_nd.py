@@ -81,6 +81,16 @@ class TestNdCommand:
         stdout, stderr = capfd.readouterr()
         assert "Command or namespace 'missing' not found in 'my-namespace'" in stderr
 
+    def test_with_command_that_cannot_be_run(self, capfd, executable_factory, run_as_child):
+        """ Handle the case where a command cannot be run """
+
+        executable_factory('nd-my-command')
+        with pytest.raises(run_as_child.ChildError) as exc_info:
+            run_as_child(nd.main, ['nd', 'my-command'])
+        stdout, stderr = capfd.readouterr()
+        assert 'SystemExit' in str(exc_info.value)
+        assert "Command 'nd-my-command' could not be run" in stderr
+
 
 class TestNdCheckSystemClock(object):
     @staticmethod

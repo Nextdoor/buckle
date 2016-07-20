@@ -93,7 +93,7 @@ def main(argv=sys.argv):
         try:
             os.execvp(path, [path, '--help'])
         except OSError:
-            sys.exit(message.error('executable {} could not be run'.format(path)))
+            sys.exit(message.error("Command '{}' could not be run".format(path)))
     else:
         print_help_for_all_commands(parser, args, path=args.path)
 
