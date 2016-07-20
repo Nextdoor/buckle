@@ -3,19 +3,19 @@
 load test_helpers
 
 setup() {
-    _shared_setup
+	_shared_setup
 }
 
 @test "'nd version' matches 'nd-version'" {
-    actual="$(nd version)"
-    expected="$(nd-version)"
-    [[ "$actual" = "$expected" && -n "$actual" ]]
+	actual="$(nd version)"
+	expected="$(nd-version)"
+	[[ "$actual" = "$expected" && -n "$actual" ]]
 }
 
 @test "'nd init -' returns 0 exit code" {
-    actual="$(nd init -)"
-    expected="$(cat $BATS_TEST_DIRNAME/../nd_toolbelt/nd-init.sh)"
-    [[ "$actual" = "$expected" && -n "$expected" ]]
+	actual="$(nd init -)"
+	expected="$(cat $BATS_TEST_DIRNAME/../nd_toolbelt/nd-init.sh)"
+	[[ "$actual" = "$expected" && -n "$expected" ]]
 }
 
 @test "'nd <command>' runs 'nd-<command>'" {
@@ -24,9 +24,9 @@ setup() {
 		echo "$*"
 EOF
 
-    result="$(nd my-command -a -b -c --f test)"
-    echo $result
-    [[ "$result" = "-a -b -c --f test" ]]
+	result="$(nd my-command -a -b -c --f test)"
+	echo $result
+	[[ "$result" = "-a -b -c --f test" ]]
 }
 
 @test "'nd <namespace>' runs 'nd-help <namespace>'" {
@@ -34,9 +34,9 @@ EOF
 		#!/usr/bin/env bash
 		echo my help output
 EOF
-    actual="$(nd my-namespace)"
-    expected="$(nd-help my-namespace)"
-    [[ "$actual" = "$expected" && "$actual" = *"my help output"* ]]
+	actual="$(nd my-namespace)"
+	expected="$(nd-help my-namespace)"
+	[[ "$actual" = "$expected" && "$actual" = *"my help output"* ]]
 }
 
 @test "'nd <namespace> <command>' runs 'nd-<namespace>~<command>'" {
@@ -45,371 +45,143 @@ EOF
 		echo "$*"
 EOF
 
-    result="$(nd my-namespace my-command -a -b -c --f arg)"
-    [[ "$result" = "-a -b -c --f arg" ]]
+	result="$(nd my-namespace my-command -a -b -c --f arg)"
+	[[ "$result" = "-a -b -c --f arg" ]]
 }
 
 @test "nd toolbelt rejects options not handled" {
-    run nd -random-test-option version
-    [[ $status != 0 ]]
+	run nd -random-test-option version
+	[[ $status != 0 ]]
 }
 
 @test "Options from \$ND_TOOLBELT_OPTS are used by nd" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
+	export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+	updated_path=$ND_TOOLBELT_ROOT/.updated
 
-    export ND_TOOLBELT_OPTS='--update-freq "300" --update'
-    touch -d "5 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
-    nd version
-    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+	export ND_TOOLBELT_OPTS='--update-freq "300" --update'
+	touch -d "5 minutes ago" $updated_path
+	last_timestamp=$(stat -c %Y $updated_path)
+	nd version
+	[[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
-@test "'nd <tab>' autocompletes commands that begin with 'nd-'" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-toolbelt-my-command
-    chmod +x $TEST_DIRECTORY/nd-toolbelt-my-command
-
-    COMP_WORDS=("nd" "toolbelt-my")
-    COMP_CWORD=1
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "toolbelt-my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <tab>' autocompletes commands that appear twice on the path" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-command
-    chmod +x $TEST_DIRECTORY/nd-my-command
-
-    mkdir $TEST_DIRECTORY/second_test_directory
-    cp $TEST_DIRECTORY/nd-my-command $TEST_DIRECTORY/second_test_directory/nd-my-command
-
-    PATH=$TEST_DIRECTORY/second_test_directory:$PATH
-
-    COMP_WORDS=("nd" "my-c")
-    COMP_CWORD=1
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <namespace> <tab>' completes commands that begin with 'nd~<namespace>'" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    COMP_WORDS=("nd" "my-namespace" "my")
-    COMP_CWORD=2
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <namespace> <subnamespace> <tab>' completes commands" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-namespace~my-subnamespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-subnamespace~my-command
-
-    COMP_WORDS=("nd" "my-namespace" "my-subnamespace" "my")
-    COMP_CWORD=3
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <namespace> <tab>' does not complete grandchildren namespaces" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child_my-command
-    chmod +x $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child_my-command
-
-    COMP_WORDS=("nd" "grandparent-namespace")
-    COMP_CWORD=2
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "parent-namespace" = "${COMPREPLY[*]}" ]]
-}
-
-@test "nd toolbelt does not autocomplete aliases" {
-    _setup_test_directory
-
-    alias nd-some-test-command="echo test"
-
-    COMP_WORDS=("nd" "some-test-com")
-    COMP_CWORD=1
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [ -z "$COMPREPLY" ]
-
-    # Verifies this test is setup correctly.
-    unalias nd-some-test-command
-    touch $TEST_DIRECTORY/nd-some-test-command
-    chmod +x $TEST_DIRECTORY/nd-some-test-command
-
-    _ndtoolbelt_autocomplete_hook
-    [ -n "$COMPREPLY" ]
-}
-
-@test "nd toolbelt does not autocomplete functions" {
-    _setup_test_directory
-
-    nd-some-test-commmand() { true; }
-
-    COMP_WORDS=("nd" "some-test-com")
-    COMP_CWORD=1
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [ -z "$COMPREPLY" ]
-
-    # Verifies this test is setup correctly.
-    touch $TEST_DIRECTORY/nd-some-test-command
-    chmod +x $TEST_DIRECTORY/nd-some-test-command
-
-    _ndtoolbelt_autocomplete_hook
-    [ -n "$COMPREPLY" ]
-}
-
-@test "'nd help' autocomplete returns matches that begin with nd" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-toolbelt-my-command
-    chmod +x $TEST_DIRECTORY/nd-toolbelt-my-command
-
-    COMP_WORDS=("nd" "help" "toolbelt-my")
-    COMP_CWORD=2
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "toolbelt-my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <namespace> help' autocomplete returns matches that begin with nd <namespace>" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    COMP_WORDS=("nd" "my-namespace" "help" "my")
-    COMP_CWORD=3
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd help --exclude <filename>' excludes filename from help prompt" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-excluded-command
-    chmod +x $TEST_DIRECTORY/nd-my-excluded-command
-
-    result=$(nd help --exclude nd-my-excluded-command)
-    [[ "$result" != *"my-excluded-command"* ]]
-}
-
-@test "'nd help <filename>' does not run --help on the file if filename is excluded in nd-help" {
-    _setup_test_directory
-
-    cp tests/fixtures/sample-help-command.py $TEST_DIRECTORY/nd-my-excluded-command
-    chmod +x $TEST_DIRECTORY/nd-my-excluded-command
-
-    result=$( { nd help --exclude nd-my-excluded-command my-excluded-command; } 2>&1 )
-    [[ "$result" == *"ERROR: nd: executable nd-my-excluded-command excluded from nd help"* ]]
-}
-
-@test "'nd <namespace> <subnamespace> help <tab>' shows subnamespace commands" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-grandparent-namespace~parent-namespace~child-namespace~my-command
-
-    COMP_WORDS=("nd" "grandparent-namespace" "parent-namespace" "help" "child")
-    COMP_CWORD=4
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "child-namespace" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd help <tab>' shows all namespaces" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    COMP_WORDS=("nd" "help" "my-na")
-    COMP_CWORD=2
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "my-namespace" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd help help <tab>' does not include 'help' again in the autocomplete choices" {
-    COMP_WORDS=("nd" "help" "help" "")
-    COMP_CWORD=3
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ -z "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <namespace> <tab>' does not include 'help' in the autocomplete choices" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    COMP_WORDS=("nd" "my-namespace" "")
-    COMP_CWORD=2
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "my-command" = "${COMPREPLY[*]}" ]]
-}
-
-@test "'nd <namespace> h<tab>' shows 'help' in the autocomplete options" {
-    _setup_test_directory
-
-    touch $TEST_DIRECTORY/nd-my-namespace~my-command
-    chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
-
-    COMP_WORDS=("nd" "my-namespace" "h")
-    COMP_CWORD=2
-
-    eval "$(nd init -)"
-    _ndtoolbelt_autocomplete_hook
-    [[ "help" = "${COMPREPLY[*]}" ]]
-}
 
 @test "nd creates the '.updated' file if it does not exist" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
-    rm -f $updated_path
-    nd version
+	export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+	updated_path=$ND_TOOLBELT_ROOT/.updated
+	rm -f $updated_path
+	nd version
 
-    [[ -f $updated_path ]]
+	[[ -f $updated_path ]]
 }
 
 @test "nd toolbelt updates the '.updated' file timestamp no more than once an hour" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
-    rm -f $updated_path
+	export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+	updated_path=$ND_TOOLBELT_ROOT/.updated
+	rm -f $updated_path
 
-    touch -d "55 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
-    nd version
-    [[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
+	touch -d "55 minutes ago" $updated_path
+	last_timestamp=$(stat -c %Y $updated_path)
+	nd version
+	[[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
 
-    touch -d "60 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
-    nd version
-    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+	touch -d "60 minutes ago" $updated_path
+	last_timestamp=$(stat -c %Y $updated_path)
+	nd version
+	[[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
 @test "'nd --update <command>' always tries to update itself from the remote repo" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
-    cd /  # Ensure that cwd location does not affect update process
+	export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+	updated_path=$ND_TOOLBELT_ROOT/.updated
+	cd /  # Ensure that cwd location does not affect update process
 
-    touch -d "55 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
-    nd --update version
-    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+	touch -d "55 minutes ago" $updated_path
+	last_timestamp=$(stat -c %Y $updated_path)
+	nd --update version
+	[[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
 @test "'nd --no-update <command>' does not update itself from the remote repo" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
+	export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+	updated_path=$ND_TOOLBELT_ROOT/.updated
 
-    touch -d "60 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
-    nd --no-update version
-    [[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
+	touch -d "60 minutes ago" $updated_path
+	last_timestamp=$(stat -c %Y $updated_path)
+	nd --no-update version
+	[[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
 }
 
 @test "'nd --update-freq <seconds> <command>' updates with the given frequency" {
-    export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
-    updated_path=$ND_TOOLBELT_ROOT/.updated
+	export ND_TOOLBELT_ROOT=$BATS_TEST_DIRNAME/..
+	updated_path=$ND_TOOLBELT_ROOT/.updated
 
-    touch -d "5 minutes ago" $updated_path
-    last_timestamp=$(stat -c %Y $updated_path)
-    nd --update-freq 300 version
-    [[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
+	touch -d "5 minutes ago" $updated_path
+	last_timestamp=$(stat -c %Y $updated_path)
+	nd --update-freq 300 version
+	[[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
 @test "nd toolbelt warns the user if the machine time offset by at least 120 seconds" {
-    clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
-    rm -f $clock_checked_path
+	clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
+	rm -f $clock_checked_path
 
-    eval "$(python-libfaketime)"
-    stderr=$(FAKETIME=-120 nd version 2>&1 >/dev/null)
-    [[ $stderr == *"The system clock is behind by"* ]]
+	eval "$(python-libfaketime)"
+	stderr=$(FAKETIME=-120 nd version 2>&1 >/dev/null)
+	[[ $stderr == *"The system clock is behind by"* ]]
 }
 
 @test "nd toolbelt deletes the .nd_toolbelt_clock_last_checked file if clock is out of date" {
-    clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
-    rm -f $clock_checked_path
+	clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
+	rm -f $clock_checked_path
 
-    eval "$(python-libfaketime)"
-    FAKETIME=-120 nd version 2>&1 >/dev/null
-    [ ! -f $clock_checked_path ]
+	eval "$(python-libfaketime)"
+	FAKETIME=-120 nd version 2>&1 >/dev/null
+	[ ! -f $clock_checked_path ]
 }
 
 @test "nd toolbelt checks the system time no more than once every 10 minutes" {
-    clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
-    rm -f $clock_checked_path
+	clock_checked_path=$TMPDIR/.nd_toolbelt_clock_last_checked
+	rm -f $clock_checked_path
 
-    touch -d "7 minutes ago" $clock_checked_path
-    last_timestamp=$(stat -c %Y $clock_checked_path)
-    nd version
-    [[ "$(stat -c %Y $clock_checked_path)" = $last_timestamp ]]
+	touch -d "7 minutes ago" $clock_checked_path
+	last_timestamp=$(stat -c %Y $clock_checked_path)
+	nd version
+	[[ "$(stat -c %Y $clock_checked_path)" = $last_timestamp ]]
 
-    touch -d "10 minutes ago" $clock_checked_path
-    last_timestamp=$(stat -c %Y $clock_checked_path)
-    nd version
-    [[ "$(stat -c %Y $clock_checked_path)" != $last_timestamp ]]
+	touch -d "10 minutes ago" $clock_checked_path
+	last_timestamp=$(stat -c %Y $clock_checked_path)
+	nd version
+	[[ "$(stat -c %Y $clock_checked_path)" != $last_timestamp ]]
 }
 
 @test "nd toolbelt automatically updates itself from the remote repo" {
-    _setup_test_directory
-    branch=$(git rev-parse --abbrev-ref HEAD)
-    unset ND_TOOLBELT_ROOT
+	_setup_test_directory
+	branch=$(git rev-parse --abbrev-ref HEAD)
+	unset ND_TOOLBELT_ROOT
 
-    # Create a "remote" repo with a new version of nd
-    git clone . $TEST_DIRECTORY/nd-toolbelt-remote
-    pushd $TEST_DIRECTORY/nd-toolbelt-remote
-    echo "#!/usr/bin/env bash" > bin/nd
-    echo "echo my-updated-nd \$*" >> bin/nd
-    git config user.email "test@example.com"
-    git config user.name "test"
-    git add bin/nd
-    git commit -m 'Test'
-    popd
+	# Create a "remote" repo with a new version of nd
+	git clone . $TEST_DIRECTORY/nd-toolbelt-remote
+	pushd $TEST_DIRECTORY/nd-toolbelt-remote
+	echo "#!/usr/bin/env bash" > bin/nd
+	echo "echo my-updated-nd \$*" >> bin/nd
+	git config user.email "test@example.com"
+	git config user.name "test"
+	git add bin/nd
+	git commit -m 'Test'
+	popd
 
-    # Create a clone of the original repo without the change but with the "remote" as the origin
-    git clone . $TEST_DIRECTORY/nd-toolbelt
+	# Create a clone of the original repo without the change but with the "remote" as the origin
+	git clone . $TEST_DIRECTORY/nd-toolbelt
 
-    # Run nd in the clone
-    cd $TEST_DIRECTORY/nd-toolbelt
-    git remote rm origin
-    git remote add origin $TEST_DIRECTORY/nd-toolbelt-remote
+	# Run nd in the clone
+	cd $TEST_DIRECTORY/nd-toolbelt
+	git remote rm origin
+	git remote add origin $TEST_DIRECTORY/nd-toolbelt-remote
 
-    virtualenv .venv
-    source .venv/bin/activate
-    pip install -e .
-    actual=$(nd --some-new-flag-that-does-not-exist-yet version)
-    [[ $actual = "my-updated-nd --some-new-flag-that-does-not-exist-yet version" ]]
+	virtualenv .venv
+	source .venv/bin/activate
+	pip install -e .
+	actual=$(nd --some-new-flag-that-does-not-exist-yet version)
+	[[ $actual = "my-updated-nd --some-new-flag-that-does-not-exist-yet version" ]]
 }

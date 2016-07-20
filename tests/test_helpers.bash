@@ -9,8 +9,8 @@ _setup_test_directory() {
     local var_name=${1:-TEST_DIRECTORY}
     local test_dir="$(mktemp -d nd-toolbelt_test.XXXXX --tmpdir)"
     _append_to_exit_trap "rm -rf $test_dir"
-    PATH=$test_dir:$PATH
-    eval $var_name=$test_dir
+    PATH="$test_dir:$PATH"
+    declare -g "$var_name"="$test_dir"
 }
 
 _append_to_exit_trap() {
@@ -32,11 +32,17 @@ _shared_setup() {
 }
 
 make_executable_command() {
+	# Creates a command in a new directory in path with contents from standard input
+	# Args:
+	#  - Name of command
+	#  - (optional) Name of variable to store the name of newly created directory with the command
+	local name="$1"
+	local dirref="${2:-TEST_DIRECTORY}"
     local command
     readarray command
 
-    _setup_test_directory TEST_DIR
-    local file="$TEST_DIR/$1"
+    _setup_test_directory "$dirref"
+    local file="${!dirref}/$name"
 
     printf '%s\n' "${command[@]}" > "$file"
     chmod +x "$file"
