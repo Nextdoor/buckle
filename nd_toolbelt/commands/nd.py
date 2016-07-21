@@ -120,7 +120,7 @@ def maybe_reload_with_updates(argv):
 
         if needs_update or known_args.force_update:
             subprocess.check_output(['touch', updated_path])
-            message.info('Checking for nd toolbelt updates...')
+            message.info('Checking for toolbelt updates...')
 
             branch = subprocess.check_output(
                 'git rev-parse --abbrev-ref HEAD', cwd=nd_toolbelt_root, shell=True).decode('utf-8')
@@ -131,6 +131,7 @@ def maybe_reload_with_updates(argv):
             process.communicate()  # Collect the return code
 
             if 'Already up-to-date.' not in output and process.returncode == 0:
+                message.info('Installing new toolbelt version...')
                 # Install the new version
                 subprocess.check_output('pip install -e .', cwd=nd_toolbelt_root, shell=True)
 
