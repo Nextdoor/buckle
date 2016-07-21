@@ -51,7 +51,7 @@ make_empty_command() {
 
 	COMP_WORDS=(nd grandparent-namespace)
 	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
-	[[ "parent-namespace" = "${COMPREPLY[*]}" ]]
+	[[ "parent-namespace help" = "${COMPREPLY[*]}" ]]
 }
 
 @test "nd toolbelt does not autocomplete aliases" {
@@ -59,7 +59,6 @@ make_empty_command() {
 	COMP_WORDS=(nd my-com)
 	COMP_CWORD=1
 	_ndtoolbelt_autocomplete_hook
-	echo $COMPREPLY
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 
 	# Try an alias instead
@@ -121,16 +120,36 @@ make_empty_command() {
 	[[ -z "${COMPREPLY[*]}" ]]
 }
 
-@test "'nd <namespace> <tab>' does not include 'help' in the options until the user presses 'h'" {
+@test "'nd <namespace> <tab>' includes 'help' in the options" {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace)
 	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
-	[[ "my-command" = "${COMPREPLY[*]}" ]]
+	[[ "my-command help" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> h<tab>' includes 'help' in the options" {
+	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace h)
 	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
 	[[ "help" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> help <tab>' does not include 'help' in the options" {
+	make_empty_command nd-my-namespace~my-command
+
+	COMP_WORDS=(nd my-namespace help)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[ "my-command" = "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> <command> <tab>' does not include 'help' in the options" {
+	make_empty_command nd-my-namespace~my-command
+
+	COMP_WORDS=(nd my-namespace my-command)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[ "" = "${COMPREPLY[*]}" ]]
 }
 
 @test "'nd <tab>' does not include '_'* in the options until the user presses '_'" {

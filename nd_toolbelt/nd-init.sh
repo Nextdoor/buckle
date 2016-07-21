@@ -43,7 +43,7 @@ _ndtoolbelt_autocomplete_hook() {
 	_ndtoolbelt_autocomplete_find_matches COMPREPLY "$nsprefix" "$cword"
 
     # Add in help as an autocomplete option if current word has been started and matches 'help'
-    if [[ -z "$help_found" ]] && [[ -n "$cword" ]] && [[ "help" = "$cword"* ]]; then
+    if [[ -z "$help_found" ]] && [[ "help" = "$cword"* ]]; then
         # Check to see if we have completed a namespace prior to 'help'
         _ndtoolbelt_autocomplete_find_matches _ND_TOOLBELT_HELP_MATCHES "$nsprefix"
         if [[ -n $_ND_TOOLBELT_HELP_MATCHES ]]; then
