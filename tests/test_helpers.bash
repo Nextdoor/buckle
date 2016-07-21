@@ -47,16 +47,3 @@ make_executable_command() {
     printf '%s\n' "${command[@]}" > "$file"
     chmod +x "$file"
 }
-
-# Ensure the screen is wide enough to accommodate all help messages
-size=($(stty size))
-_ORIGINAL_COLUMNS="${size[1]}"
-stty columns 200
-
-_restore_terminal_width() {
-    if [[ -n "$_ORIGINAL_COLUMNS" ]]; then
-        stty columns $_ORIGINAL_COLUMNS
-    fi
-}
-
-_append_to_exit_trap "_restore_terminal_width"
