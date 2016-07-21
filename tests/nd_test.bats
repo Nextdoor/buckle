@@ -156,13 +156,13 @@ EOF
 }
 
 @test "nd toolbelt automatically updates itself from the remote repo" {
-	_setup_test_directory
+	_setup_test_directory TEST_DIR
 	branch=$(git rev-parse --abbrev-ref HEAD)
 	unset ND_TOOLBELT_ROOT
 
 	# Create a "remote" repo with a new version of nd
-	git clone . $TEST_DIRECTORY/nd-toolbelt-remote
-	pushd $TEST_DIRECTORY/nd-toolbelt-remote
+	git clone . $TEST_DIR/nd-toolbelt-remote
+	pushd $TEST_DIR/nd-toolbelt-remote
 	echo "#!/usr/bin/env bash" > bin/nd
 	echo "echo my-updated-nd \$*" >> bin/nd
 	git config user.email "test@example.com"
@@ -172,12 +172,12 @@ EOF
 	popd
 
 	# Create a clone of the original repo without the change but with the "remote" as the origin
-	git clone . $TEST_DIRECTORY/nd-toolbelt
+	git clone . $TEST_DIR/nd-toolbelt
 
 	# Run nd in the clone
-	cd $TEST_DIRECTORY/nd-toolbelt
+	cd $TEST_DIR/nd-toolbelt
 	git remote rm origin
-	git remote add origin $TEST_DIRECTORY/nd-toolbelt-remote
+	git remote add origin $TEST_DIR/nd-toolbelt-remote
 
 	virtualenv .venv
 	source .venv/bin/activate
