@@ -98,7 +98,7 @@ class TestNamespaceHelp:
         executable_factory('nd-my-command', make_help_command("""\
             usage: ...
 
-            my help message"""))
+            my help message"""), dedent=False)
         help.main(['nd-help'])
         assert 'my-command   my help message' in readout()
 

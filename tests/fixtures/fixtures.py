@@ -4,6 +4,7 @@ import io
 import mock
 import os
 import stat
+import textwrap
 import traceback
 
 import pytest  # flake8: noqa
@@ -23,13 +24,14 @@ def readerr(capfd):
 
 @pytest.fixture
 def executable_factory(monkeypatch, tmpdir):
-    """ Factory for creating executable files from contents """
+    """ Factory for creating executable files from contents.  Also dedents the contents. """
 
-    def factory(name, contents=''):
-        monkeypatch.setenv('PATH', tmpdir, prepend=':')
+    monkeypatch.setenv('PATH', tmpdir, prepend=':')
+
+    def factory(name, contents='', dedent=True):
         test_cmd_path = os.path.join(str(tmpdir), name)
         with open(test_cmd_path, 'w+') as f:
-            f.write(contents)
+            f.write(textwrap.dedent(contents) if dedent else contents)
         # Make file executable
         os.chmod(test_cmd_path, os.stat(test_cmd_path).st_mode | stat.S_IEXEC)
         return test_cmd_path

@@ -35,16 +35,36 @@ class TestExecutableFactory:
         contents = subprocess.check_output('cat $(which my-command)', shell=True).decode('utf-8')
         assert contents == 'my content'
 
-    def test_appends_to_path(self, executable_factory):
-        old_path = os.getenv('PATH')
+    @staticmethod
+    @pytest.fixture
+    def original_path():
+        return os.getenv('PATH')
+
+    def test_appends_to_path(self, original_path, executable_factory):
         executable_factory('my-command', '')
         new_path = os.getenv('PATH')
 
-        assert old_path != new_path
-        assert old_path in new_path
+        assert original_path != new_path
+        assert original_path in new_path
 
     def test_returns_correct_path(self, executable_factory):
         path = executable_factory('my-command', 'my content')
         with open(path) as f:
             contents = f.read()
         assert contents == 'my content'
+
+    def test_dedent(self, executable_factory):
+        path = executable_factory('my-command', """\
+            This command is not indented
+            No way!""")
+        with open(path) as f:
+            contents = f.read()
+        assert contents == 'This command is not indented\nNo way!'
+
+    def test_no_dedent(self, executable_factory):
+        path = executable_factory('my-command', """\
+            This command is not indented
+            No way!""", dedent=False)
+        with open(path) as f:
+            contents = f.read()
+        assert contents == '            This command is not indented\n            No way!'
