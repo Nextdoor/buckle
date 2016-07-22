@@ -9,7 +9,7 @@ _ndtoolbelt_autocomplete_find_matches() {
 	local exclude='^$'  # exclude nothing by default
 	if [[ -z "$cword" ]]; then
 		# When offering completions for a namespace, exclude those starting with '_'
-		exclude="^${prefix}_.*$"
+		exclude="^${prefix}[_.].*$"
 	fi
 
     declare -ga "${target}"="( $({

@@ -22,7 +22,7 @@ def readerr(capfd):
     return lambda: capfd.readouterr()[1]
 
 
-@pytest.fixture
+@pytest.fixture()
 def executable_factory(monkeypatch, tmpdir):
     """ Factory for creating executable files from contents.  Also dedents the contents. """
 

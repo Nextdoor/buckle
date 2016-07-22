@@ -16,8 +16,8 @@ import tempfile
 import time
 
 from nd_toolbelt import help_formatters
-from nd_toolbelt import ntp
 from nd_toolbelt import message
+from nd_toolbelt import ntp
 from nd_toolbelt import path as toolbelt_path
 
 
@@ -52,6 +52,8 @@ def parse_args(argv, known_only=True):
                         help='Do not check the system clock.')
     parser.add_argument('--check-clock-freq', type=int, default=600,
                         help='Minimum number of seconds between clock checks')
+
+    parser.add_argument('--skip-dot-commands', action='store_true', help='Do not run dot commands.')
 
     parser.add_argument('namespace', nargs='*', default=[],
                         help='The namespace path of the command to run.')
@@ -179,6 +181,22 @@ def check_system_clock(check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
             subprocess.check_output(['touch', clock_checked_path])
 
 
+def run_dot_commands(namespaces, command, args):
+    for depth, namespace in enumerate([''] + namespaces):
+        prefix = 'nd-' + ''.join(ns + '~' for ns in namespaces[:depth])
+        try:
+            matches = subprocess.check_output('compgen -c "{}."'.format(prefix),
+                                              shell=True, executable='/bin/bash').decode('utf-8')
+        except subprocess.CalledProcessError:
+            continue  # No dot commands in current namespace
+
+        for dot_command in sorted(set(matches.split())):  # Duplicates removed
+            try:
+                subprocess.check_call([dot_command] + [' '.join(namespaces + [command])] + args)
+            except subprocess.CalledProcessError:
+                sys.exit(message.format_error("Dot command '{}' failed.".format(dot_command)))
+
+
 def main(argv=sys.argv):
     args = parse_args(argv, known_only=False)
     maybe_reload_with_updates(argv)
@@ -187,7 +205,11 @@ def main(argv=sys.argv):
     if not args.skip_clock_check:
         check_system_clock(args.check_clock_freq)
 
+    if not args.skip_dot_commands:
+        run_dot_commands(args.namespace, args.command, args.args)
+
     flush_file_descriptors()
+
     try:
         os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
     except OSError:

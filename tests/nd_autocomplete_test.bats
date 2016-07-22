@@ -161,6 +161,17 @@ make_empty_command() {
 
 	COMP_WORDS=(nd '_')
 	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
-	echo "Got ${COMPREPLY[*]}"
 	[[ "${COMPREPLY[*]}" = *"_my-command"* ]]
+}
+
+@test "'nd <tab>' does not include '.'* in the options until the user presses '.'" {
+	make_empty_command nd-.my-command
+
+	COMP_WORDS=(nd)
+	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	[[  "${COMPREPLY[*]}" != *".my-command"* ]]
+
+	COMP_WORDS=(nd '.')
+	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	[[ "${COMPREPLY[*]}" = *".my-command"* ]]
 }

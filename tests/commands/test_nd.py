@@ -11,50 +11,70 @@ from fixtures import executable_factory, run_as_child, readerr, readout
 from nd_toolbelt.commands import nd
 
 
+@pytest.fixture(autouse=True)
+def clear_toolbelt_options(monkeypatch):
+    monkeypatch.delenv('ND_TOOLBELT_OPTS', raising=False)
+
+
+@pytest.fixture()
+def disable_update(monkeypatch):
+    monkeypatch.setenv('ND_TOOLBELT_OPTS', '--no-update', prepend=' ')
+
+
+@pytest.fixture()
+def disable_clock_check(monkeypatch):
+    monkeypatch.setenv('ND_TOOLBELT_OPTS', '--no-clock-check', prepend=' ')
+
+
+@pytest.fixture()
+def disable_dot_commands(monkeypatch):
+    monkeypatch.setenv('ND_TOOLBELT_OPTS', '--skip-dot-commands', prepend=' ')
+
+
 class TestNdCommand:
-    def test_nd_update_and_no_update_cannot_be_set_together(self, readerr):
-        """ Handle the case where --update and --no-update are both called as options """
+    @pytest.fixture(autouse=True)
+    def setup(self, executable_factory, readout, run_as_child,
+              disable_update, disable_clock_check, disable_dot_commands):
+        self.executable_factory = executable_factory
+        self.readout = readout
+        self.run_as_child = run_as_child
 
-        with pytest.raises(SystemExit):
-            nd.main(['nd', '--update', '--no-update', 'version'])
-        assert '--no-update: not allowed with argument --update' in readerr()
-
-    def test_with_no_args(self, readout, executable_factory, run_as_child):
-        """ Handle nd being passed no command or namespace """
-
-        executable_factory('nd-help', '#!/bin/bash\necho -n help "<$@>"')
-        run_as_child(nd.main, ['nd'])
-        assert 'help <>' in readout()
-
-    def test_with_command(self, readout, executable_factory, run_as_child):
-        """ Handle executing nd command in path """
-
-        executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
-        run_as_child(nd.main, ['nd', 'my-command'])
-        assert readout() == 'my command output\n'
-
-    def test_command_with_argument(self, readout, executable_factory, run_as_child):
+    def test_runs_command_and_passes_arguments(self):
         """ Handle executing nd command in path with arguments passed from nd """
 
-        executable_factory('nd-my-command', '#!/bin/echo')
-        run_as_child(nd.main, ['nd', 'my-command', '--my-option', 'my-argument'])
-        assert '--my-option my-argument' in readout()
+        self.executable_factory('nd-my-command', '#!/bin/echo')
+        self.run_as_child(nd.main, ['nd', 'my-command', '--my-option', 'my-argument'])
+        assert '--my-option my-argument' in self.readout()
 
-    def test_with_namespace(self, readout, executable_factory, run_as_child):
+    def test_runs_command(self):
         """ Handle executing nd command in path """
 
-        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
-        executable_factory('nd-my-namespace~my-command')
+        self.executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
+        self.run_as_child(nd.main, ['nd', 'my-command'])
+        assert self.readout() == 'my command output\n'
 
-        run_as_child(nd.main, ['nd', 'my-namespace'])
-        assert readout() == 'my-namespace'
+    def test_calls_help_if_given_no_commands_or_arguments(self):
+        """ Handle nd being passed no command or namespace """
 
-    def test_help_for_command(self, readout, executable_factory, run_as_child):
+        self.executable_factory('nd-help', '#!/bin/bash\necho -n help "<$@>"')
+        self.run_as_child(nd.main, ['nd'])
+        assert 'help <>' in self.readout()
+
+    def test_calls_help_if_namespace_given_without_command(self):
+        """ Handle executing nd namespace in path """
+
+        self.executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        self.executable_factory('nd-my-namespace~my-command')
+
+        self.run_as_child(nd.main, ['nd', 'my-namespace'])
+        assert self.readout() == 'my-namespace'
+
+    def test_calls_help_for_command_when_help_is_first_argument(self):
         """ Handle executing nd-help for command in path """
 
-        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
-        run_as_child(nd.main, ['nd', 'help', 'my-command'])
-        assert readout() == 'my-command'
+        self.executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        self.run_as_child(nd.main, ['nd', 'help', 'my-command'])
+        assert self.readout() == 'my-command'
 
     def test_command_or_namespace_not_found(self):
         """ Handle being given a command or namespace not in path """
@@ -63,24 +83,55 @@ class TestNdCommand:
             nd.main(['nd', 'missing'])
         assert "Command 'missing' not found." in str(exc_info.value)
 
-    def test_command_or_namespace_help_not_found(self, executable_factory):
+    def test_command_or_namespace_help_not_found(self):
         """ Handle being given a command or namespace for help not in path """
 
-        executable_factory('nd-help', '#!/bin/bash\necho -n $@')
-        executable_factory('nd-my-namespace~my-command')
+        self.executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        self.executable_factory('nd-my-namespace~my-command')
 
         with pytest.raises(SystemExit) as exc_info:
             nd.main(['nd', 'my-namespace', 'missing', 'help'])
         assert "Command or namespace 'missing' not found in 'my-namespace'" in str(exc_info.value)
 
-    def test_with_command_that_cannot_be_run(self, executable_factory, run_as_child):
+    def test_with_command_that_cannot_be_run(self):
         """ Handle the case where a command cannot be run """
 
-        executable_factory('nd-my-command')
-        with pytest.raises(run_as_child.ChildError) as exc_info:
-            run_as_child(nd.main, ['nd', 'my-command'])
+        self.executable_factory('nd-my-command')
+        with pytest.raises(self.run_as_child.ChildError) as exc_info:
+            self.run_as_child(nd.main, ['nd', 'my-command'])
         assert 'SystemExit' in str(exc_info.value)
         assert "Command 'nd-my-command' could not be run" in str(exc_info.value)
+
+
+class TestDotCommand:
+    def test_dot_commands_run_automatically_before_command(self, disable_clock_check,
+                                                           disable_update, executable_factory,
+                                                           readout, run_as_child):
+        """ All dot commands for the given namespace should run before the given command """
+
+        executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
+        executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
+        run_as_child(nd.main, ['nd', 'my-command'])
+        assert readout() == 'my dot command output\nmy command output\n'
+
+
+class TestNdOptions:
+    def test_nd_update_and_no_update_cannot_be_set_together(self, disable_clock_check,
+                                                            disable_dot_commands, readerr):
+        """ Handle the case where --update and --no-update are both called as options """
+
+        with pytest.raises(SystemExit):
+            nd.main(['nd', '--update', '--no-update', 'version'])
+        assert '--no-update: not allowed with argument --update' in readerr()
+
+    def test_dot_commands_disabled_option(self, disable_clock_check, disable_update,
+                                       executable_factory, readout, run_as_child):
+        """ Ignore dot commands before the given command if option is set in toolbelt """
+
+        executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
+        executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
+        run_as_child(nd.main, ['nd', '--skip-dot-commands', 'my-command'])
+        assert readout() == 'my command output\n'
 
 
 class TestParseArgs:
@@ -135,7 +186,7 @@ class TestParseArgs:
         assert "Command or namespace 'missing' not found in 'my-namespace" in str(exc_info.value)
 
 
-class TestNdCheckSystemClock(object):
+class TestNdCheckSystemClock:
     @staticmethod
     @pytest.yield_fixture
     def ntp_response_factory():
@@ -187,3 +238,72 @@ class TestNdCheckSystemClock(object):
             mock_socket.return_value.sendto.side_effect = socket.error()
             nd.check_system_clock(check_clock_freq=0)
             assert 'Error checking network time, exception: ' in readerr()
+
+
+class TestRunDotCommands:
+    @staticmethod
+    @pytest.yield_fixture(autouse=True)
+    def set_minimal_path(monkeypatch):
+        monkeypatch.setenv('PATH', '/usr/bin:/bin')
+        yield
+
+    def test_runs_with_passed_command_and_args(self, executable_factory, readout):
+        """ Dot Commands are called with the called command and its args """
+        executable_factory('nd-my-namespace~.my-check', """\
+            #!/bin/bash
+            echo $1
+            echo $2
+            echo $3""")
+        nd.run_dot_commands(['my-namespace'], 'my-command', ['arg1', 'arg2'])
+        assert readout() == 'my-namespace my-command\narg1\narg2\n'
+
+    def test_dot_commands_run_only_once(self, executable_factory, monkeypatch, readout):
+        """ Handle the dot command appearing multiple times on path by running it only once """
+
+        tmp_path = executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
+        monkeypatch.setenv('PATH', tmp_path, prepend=':')
+        nd.run_dot_commands([], '', [])
+        assert readout() == 'my dot command output\n'
+
+    def test_dot_command_fails_triggers_system_exit(self, executable_factory):
+        """ Handle dot command failing with exit code not zero by exiting system """
+
+        executable_factory('nd-.my-check', '#!/bin/bash\nexit 1')
+        with pytest.raises(SystemExit) as exc_info:
+            nd.run_dot_commands([], '', [])
+        assert "Dot command 'nd-.my-check' failed." in str(exc_info.value)
+
+    def test_with_no_dot_commands(self):
+        """ Handle no dot command being in namespace """
+
+        assert nd.run_dot_commands([], '', []) is None
+
+    def test_dot_commands_run_alphabetically(self, executable_factory, readout):
+        """ All dot commands for the given namespace should run in alphabetical order """
+
+        executable_factory('nd-.my-checkC', '#!/bin/bash\necho dot command C output')
+        executable_factory('nd-.my-checkA', '#!/bin/bash\necho dot command A output')
+        executable_factory('nd-.my-checkB', '#!/bin/bash\necho dot command B output')
+        nd.run_dot_commands([], '', [])
+        assert readout() == 'dot command A output\ndot command B output\ndot command C output\n'
+
+    def test_child_dot_commands_do_not_run(self, executable_factory, readout):
+        """ Dot commands in child namespaces do not get called """
+
+        executable_factory('nd-.my-check', '#!/bin/bash\necho parent dot command output')
+        executable_factory('nd-my-namespace~.my-check',
+                           '#!/bin/bash\necho child dot command output')
+        nd.run_dot_commands([], '', [])
+        assert readout() == 'parent dot command output\n'
+
+    def test_dot_commands_run_in_order_of_namespace(self, executable_factory, readout):
+        """ Dot commands in parent namespaces run before its children """
+
+        executable_factory('nd-.my-check', '#!/bin/bash\necho parent dot command output')
+        executable_factory('nd-my-namespace~.my-check',
+                           '#!/bin/bash\necho child dot command output')
+        executable_factory('nd-my-namespace~subnamespace~.my-check',
+                           '#!/bin/bash\necho grandchild dot command output')
+        nd.run_dot_commands(['my-namespace', 'subnamespace'], '', [])
+        assert readout() == ('parent dot command output\nchild dot command output\n'
+                             'grandchild dot command output\n')
