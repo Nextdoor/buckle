@@ -12,7 +12,7 @@ import pkg_resources
 import subprocess
 import sys
 
-README_PATH = '../../README.md'
+README_PATH = '../README.md'
 
 
 def main(argv=sys.argv):
