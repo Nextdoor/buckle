@@ -19,3 +19,17 @@ EOF
 	result="$(nd my-command)"
 	[[ "$result" = $'my dot file output\nmy command output' ]]
 }
+
+@test "'nd <dot command>' does not run dot commands prior to running" {
+	make_executable_command nd-.my-first-check <<- 'EOF'
+		#!/usr/bin/env bash
+		echo my first dot file output
+EOF
+	make_executable_command nd-.my-second-check <<- 'EOF'
+		#!/usr/bin/env bash
+		echo my second dot file output
+EOF
+
+	result="$(nd .my-first-check)"
+	[[ "$result" = "my first dot file output" ]]
+}

@@ -86,8 +86,7 @@ def parse_args(argv, known_only=True):
         if not command:
             namespace, command, command_args = ([], 'help', namespace)
 
-    args.namespace, args.command, args.args = (
-        namespace, 'nd-{}'.format('~'.join(namespace + [command])), command_args)
+    args.namespace, args.command, args.args = (namespace, command, command_args)
 
     return args
 
@@ -205,15 +204,15 @@ def main(argv=sys.argv):
     if not args.skip_clock_check:
         check_system_clock(args.check_clock_freq)
 
-    if not args.skip_dot_commands:
+    if not args.skip_dot_commands and not args.command.startswith('.'):
         run_dot_commands(args.namespace, args.command, args.args)
 
     flush_file_descriptors()
-
+    path = 'nd-{}'.format('~'.join(args.namespace + [args.command]))
     try:
-        os.execvp(args.command, [args.command] + args.args)  # Hand off to nd command
+        os.execvp(path, [path] + args.args)  # Hand off to nd command
     except OSError:
-        sys.exit(message.format_error("Command '{}' could not be run".format(args.command)))
+        sys.exit(message.format_error("Command '{}' could not be run".format(path)))
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -104,15 +104,35 @@ class TestNdCommand:
 
 
 class TestDotCommand:
-    def test_dot_commands_run_automatically_before_command(self, disable_clock_check,
-                                                           disable_update, executable_factory,
-                                                           readout, run_as_child):
+    @pytest.fixture(autouse=True)
+    def setup(self, disable_clock_check, disable_update, executable_factory, readout, run_as_child):
+        self.executable_factory = executable_factory
+        self.readout = readout
+        self.run_as_child = run_as_child
+
+    def test_dot_commands_run_automatically_before_command(self):
         """ All dot commands for the given namespace should run before the given command """
 
-        executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
-        executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
-        run_as_child(nd.main, ['nd', 'my-command'])
-        assert readout() == 'my dot command output\nmy command output\n'
+        self.executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
+        self.executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
+        self.run_as_child(nd.main, ['nd', 'my-command'])
+        assert self.readout() == 'my dot command output\nmy command output\n'
+
+    def test_dot_commands_are_passed_command_name_and_arguments(self):
+        """ All dot commands get passed the target namespace + command and its arguments """
+
+        self.executable_factory('nd-my-namespace~.my-check', '#!/bin/bash\necho $@')
+        self.executable_factory('nd-my-namespace~my-command', '#!/bin/bash\necho my command output')
+        self.run_as_child(nd.main, ['nd', 'my-namespace', 'my-command', 'arg1', 'arg2'])
+        assert self.readout() == 'my-namespace my-command arg1 arg2\nmy command output\n'
+
+    def test_dot_commands_run_as_command_does_not_run_dot_commands_prior_to_running(self):
+        """ When calling a dot command directly, do not call dot commands prior to executing """
+
+        self.executable_factory('nd-.my-first-check', '#!/bin/bash\necho my first check')
+        self.executable_factory('nd-.my-second-check', '#!/bin/bash\necho my second check')
+        self.run_as_child(nd.main, ['nd', '.my-first-check'])
+        assert self.readout() == 'my first check\n'
 
 
 class TestNdOptions:
@@ -141,16 +161,19 @@ class TestParseArgs:
         return args.namespace, args.command, args.args
 
     def test_commands(self, executable_factory):
-        """ Handle being given a command or namespaces for help """
+        """ Handle being given a command with or without namespaces """
 
         executable_factory('nd-my-command')
         executable_factory('nd-my-namespace~my-command')
 
-        assert ([], 'nd-my-command', []) == self.split('my-command')
-        assert (['my-namespace'], 'nd-my-namespace~my-command', []) == \
-               self.split('my-namespace', 'my-command')
-        assert (['my-namespace'], 'nd-my-namespace~my-command', ['arg']) == \
+        assert ([], 'my-command', []) == self.split('my-command')
+        assert (['my-namespace'], 'my-command', []) == self.split('my-namespace', 'my-command')
+        assert (['my-namespace'], 'my-command', ['arg']) == \
                self.split('my-namespace', 'my-command', 'arg')
+
+    def test_missing_commands(self, executable_factory):
+        """ Handle being given a missing command with or without namespaces """
+        executable_factory('nd-my-namespace~my-command')
 
         with pytest.raises(SystemExit) as exc_info:
             self.split('missing')
@@ -168,17 +191,17 @@ class TestParseArgs:
         executable_factory('nd-my-namespace~my-command')
         executable_factory('nd-my-other-namespace~help')
 
-        assert ([], 'nd-help', []) == self.split()
-        assert ([], 'nd-help', ['my-command']) == self.split('help', 'my-command')
-        assert ([], 'nd-help', ['missing']) == self.split('help', 'missing')
-        assert ([], 'nd-help', ['my-namespace']) == self.split('help', 'my-namespace')
-        assert ([], 'nd-help', ['my-namespace', 'missing']) == \
+        assert ([], 'help', []) == self.split()
+        assert ([], 'help', ['my-command']) == self.split('help', 'my-command')
+        assert ([], 'help', ['missing']) == self.split('help', 'missing')
+        assert ([], 'help', ['my-namespace']) == self.split('help', 'my-namespace')
+        assert ([], 'help', ['my-namespace', 'missing']) == \
                self.split('help', 'my-namespace', 'missing')
-        assert ([], 'nd-help', ['my-namespace', 'missing']) == \
+        assert ([], 'help', ['my-namespace', 'missing']) == \
                self.split('my-namespace', 'help', 'missing')
-        assert (['my-other-namespace'], 'nd-my-other-namespace~help', []) == \
+        assert (['my-other-namespace'], 'help', []) == \
                self.split('my-other-namespace', 'help')
-        assert (['my-other-namespace'], 'nd-my-other-namespace~help', ['arg']) == \
+        assert (['my-other-namespace'], 'help', ['arg']) == \
                self.split('my-other-namespace', 'help', 'arg')
 
         with pytest.raises(SystemExit) as exc_info:
