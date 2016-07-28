@@ -175,3 +175,39 @@ make_empty_command() {
 	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
 	[[ "${COMPREPLY[*]}" = *".my-command"* ]]
 }
+
+@test "'nd -<option> <namespace> <tab>' still returns commands in the given namespace" {
+	make_empty_command nd-my-namespace~my-command
+
+	COMP_WORDS=(nd -some-option my-namespace)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[  "${COMPREPLY[*]}" = "my-command help" ]]
+
+	COMP_WORDS=(nd --some-option my-namespace)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[  "${COMPREPLY[*]}" = "my-command help" ]]
+}
+
+@test "'nd -<option>=<arg> <namespace> <tab>' still returns commands in the given namespace" {
+	make_empty_command nd-my-namespace~my-command
+
+	COMP_WORDS=(nd -some-option=10 my-namespace)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[  "${COMPREPLY[*]}" = "my-command help" ]]
+
+	COMP_WORDS=(nd --some-option=10 my-namespace)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[  "${COMPREPLY[*]}" = "my-command help" ]]
+}
+
+@test "'nd <namespace> -<option> <tab>' autocomplete does not return namespace completions" {
+	make_empty_command nd-my-namespace~my-command
+
+	COMP_WORDS=(nd my-namespace -some-option my-co)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[  -z "${COMPREPLY[*]}" ]]
+
+	COMP_WORDS=(nd my-namespace --some-option my-co)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[  -z "${COMPREPLY[*]}" ]]
+}
