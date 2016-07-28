@@ -52,4 +52,7 @@ _ndtoolbelt_autocomplete_hook() {
     fi
 }
 
-complete -F _ndtoolbelt_autocomplete_hook nd
+# This idiom follows git bash autocompletion
+# https://github.com/git/git/blob/master/contrib/completion/git-completion.bash#L2874
+complete -o bashdefault -o default -F _ndtoolbelt_autocomplete_hook nd 2>/dev/null \
+    || complete -o default -F _ndtoolbelt_autocomplete_hook nd
