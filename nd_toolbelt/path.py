@@ -21,7 +21,7 @@ class CommandNotFound(CommandOrNamespaceNotFound):
     prefix = 'Command'
 
 
-def split_path_and_command(args):
+def split_path_and_command(args, namespace_separator='~'):
     """ Parses a list of arguments and separates a command from its arguments and namespace.
 
     Args:
@@ -42,8 +42,13 @@ def split_path_and_command(args):
     for cmd_end, arg in enumerate(args):
         path = list(args[:cmd_end])
         rest = list(args[cmd_end+1:])
-        prefix = 'nd-' + '~'.join(path + [arg])
-        possible_executables = autocomplete.get_executables_starting_with(prefix)
+        prefix = 'nd-' + namespace_separator.join(path + [arg])
+
+        # Find executables where the prefix is the whole command or the prefix is a complete
+        # namespace
+        possible_executables = [
+            p for p in autocomplete.get_executables_starting_with(prefix)
+            if p == prefix or p.startswith(prefix + namespace_separator)]
 
         if possible_executables == [prefix]:
             return path, arg, rest

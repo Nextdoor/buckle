@@ -1,6 +1,4 @@
 import mock
-import os
-import tempfile
 import stat
 import subprocess
 
@@ -8,15 +6,23 @@ import pytest  # flake8: noqa
 
 from nd_toolbelt import autocomplete
 
+from fixtures import executable_factory
+
 STAT_OWNER_EXECUTABLE = stat.S_IEXEC
 
 
 class TestGetExecutablesStartingWith(object):
-    def test_returns_sorted_list(self):
-        ordered_return_list = ['nd-init nd-version nd-help'.encode(), ''.encode()]
-        with mock.patch.object(subprocess, 'check_output', side_effect=ordered_return_list):
-            result = autocomplete.get_executables_starting_with()
-            assert result == ['nd-help', 'nd-init', 'nd-version']
+    @staticmethod
+    @pytest.fixture(autouse=True)
+    def set_minimal_path(monkeypatch):
+        monkeypatch.setenv('PATH', None)
+
+    def test_returns_sorted_list(self, executable_factory):
+        executable_factory('nd-c')
+        executable_factory('nd-a')
+        executable_factory('nd-b')
+        result = autocomplete.get_executables_starting_with('nd-')
+        assert result == ['nd-a', 'nd-b', 'nd-c']
 
     def test_functions_excluded(self):
         ordered_return_list = ['nd-init nd-help nd-function'.encode(), 'nd-function'.encode()]
@@ -30,13 +36,7 @@ class TestGetExecutablesStartingWith(object):
             result = autocomplete.get_executables_starting_with()
             assert not result
 
-    def test_finds_commands_in_path(self, monkeypatch):
-        monkeypatch.setenv('PATH', tempfile.gettempdir(), prepend=':')
-        test_cmd_path = tempfile.gettempdir() + '/nd-my-test-command'
-
-        with open(test_cmd_path, 'w+'):
-            st = os.stat(test_cmd_path)
-            os.chmod(test_cmd_path, st.st_mode | STAT_OWNER_EXECUTABLE)  # Make cmd executable
-
-            result = autocomplete.get_executables_starting_with(prefix='nd-my-test')
-            assert result == ['nd-my-test-command']
+    def test_finds_commands_in_path(self, executable_factory):
+        executable_factory('nd-my-test-command')
+        result = autocomplete.get_executables_starting_with(prefix='nd-my-test-command')
+        assert result == ['nd-my-test-command']

@@ -52,3 +52,10 @@ class TestSplitPathAndCommand(object):
         with pytest.raises(path.CommandOrNamespaceNotFound) as e:
             split('missing-namespace', 'missing-command')
         assert e.value.path == ('missing-namespace',)
+
+    def test_when_command_name_is_a_prefix_of_another_command(self, executable_factory):
+        """ Handle executing nd command in path """
+        executable_factory('nd-my-command')
+        executable_factory('nd-my-command-two')
+
+        assert split('my-command') == ([], 'my-command', [])

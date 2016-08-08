@@ -265,10 +265,9 @@ class TestNdCheckSystemClock:
 
 class TestRunDotCommands:
     @staticmethod
-    @pytest.yield_fixture(autouse=True)
+    @pytest.fixture(autouse=True)
     def set_minimal_path(monkeypatch):
         monkeypatch.setenv('PATH', '/usr/bin:/bin')
-        yield
 
     def test_runs_with_passed_command_and_args(self, executable_factory, readout):
         """ Dot Commands are called with the called command and its args """

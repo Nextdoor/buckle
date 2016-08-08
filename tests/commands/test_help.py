@@ -59,10 +59,9 @@ class TestCommandHelp:
 
 class TestNamespaceHelp:
     @staticmethod
-    @pytest.yield_fixture(autouse=True)
+    @pytest.fixture(autouse=True)
     def set_minimal_path(monkeypatch):
         monkeypatch.setenv('PATH', '/usr/bin:/bin')
-        yield
 
     @staticmethod
     @pytest.fixture(autouse=True)

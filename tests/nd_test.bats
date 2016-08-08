@@ -25,7 +25,6 @@ setup() {
 EOF
 
 	result="$(nd my-command -a -b -c --f test)"
-	echo $result
 	[[ "$result" = "-a -b -c --f test" ]]
 }
 
