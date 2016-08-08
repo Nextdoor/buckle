@@ -4,7 +4,7 @@ load test_helpers
 
 setup() {
 	_shared_setup
-	eval "$(nd init -)"
+	source $BATS_TEST_DIRNAME/../nd_toolbelt/nd-init.sh
 }
 
 make_empty_command() {
@@ -210,4 +210,48 @@ make_empty_command() {
 	COMP_WORDS=(nd my-namespace --some-option my-co)
 	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
 	[[  -z "${COMPREPLY[*]}" ]]
+}
+
+@test "'nd <namespace> <command>' shows autocomplete choices generated from user-provided command" {
+    make_empty_command nd-my-namespace~my-command
+    make_executable_command nd-my-namespace~my-command.completion.script <<- 'EOF'
+        #!/usr/bin/env bash
+		echo "${COMP_WORDS[@]} word$COMP_CWORD"
+EOF
+	COMP_WORDS=(nd my-namespace my-command my-arg)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[ "nd my-namespace my-command my-arg word3" = "${COMPREPLY[@]}" ]]
+
+	# Check that autocomplete doesn't include the completion script itself
+	COMP_WORDS=(nd my-namespace my-command)
+	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	[[ "my-command" = "${COMPREPLY[@]}" ]]
+}
+
+@test "'nd <namespace> <command>' includes autocomplete choices generated from namespace autocomplete command" {
+    make_executable_command nd-my-namespace.completion.script <<- 'EOF'
+        #!/usr/bin/env bash
+		echo "${COMP_WORDS[@]} word$COMP_CWORD"
+EOF
+    make_executable_command nd-my-namespace~my-command.completion.script <<- 'EOF'
+        #!/usr/bin/env bash
+		echo "${COMP_WORDS[@]} namespace_word$COMP_CWORD"
+EOF
+	COMP_WORDS=(nd my-namespace my-command my-arg)
+	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	[[ "nd my-namespace my-command my-arg word3 nd my-namespace my-command my-arg namespace_word3" \
+	    = "${COMPREPLY[@]}" ]]
+}
+
+@test "_ndtoolbelt_autocomplete_command_arg_completions sets completion from 'sourced' script output" {
+    make_empty_command nd-my-namespace~my-command
+    make_executable_command nd-my-namespace~my-command.completion.sh <<- 'EOF'
+		echo "${COMP_WORDS[@]} word$COMP_CWORD $SOMETHING_NOT_EXPORTED"
+EOF
+    SOMETHING_NOT_EXPORTED=something_not_exported
+    COMP_WORDS=(nd my-namespace my-command my-arg)
+    COMP_CWORD=3
+	NSPATH=(my-namespace my-command)
+	_ndtoolbelt_autocomplete_command_arg_completions COMPLETIONS NSPATH[@]
+	[[ "nd my-namespace my-command my-arg word3 something_not_exported" = "${COMPLETIONS[@]}" ]]
 }

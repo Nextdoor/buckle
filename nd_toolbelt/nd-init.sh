@@ -1,23 +1,57 @@
 _ndtoolbelt_autocomplete_find_matches() {
     # Sets the variable at $1 to the possible matches for the next word of the command with the
-    # prefix specified in $2 and the current partial word in $3.
+    # namespace path indicated in $2 and the current partial word in $3.
     local target=$1
-    local prefix=$2
+    local path=("${!2}")  # Expand the array reference ("arr[@]") described in $2
     local cword=$3
 
+    local prefix=''
+    if [[ ${#path[@]} > 0 ]]; then
+        # Joins the array with trailing tildes to gather the current namespace path
+        printf -v prefix "%s~" "${path[@]}"
+    fi
+    prefix="nd-$prefix"
 
-    local exclude='^$'  # exclude nothing by default
+    local exclude=''  # exclude nothing by default
     if [[ -z "$cword" ]]; then
         # When offering completions for a namespace, exclude those starting with '_'
-        exclude="^${prefix}[_.].*$"
+        exclude="${prefix}[_.].*"
     fi
 
+    compgen_args=(-X "*.completion?(.*)" "${prefix}${cword}")
     declare -ga "${target}"="( $({
-            compgen -c -X "${exclude}" "${prefix}${cword}" | sort -u;
-            compgen -abk -A function -X "${exclude}" "${prefix}${cword}";
-            } | sort | uniq -u | sed -e s/"${exclude}"// -e s/"${prefix}"// -e s/~.*$//) )"
+        shopt -s extglob;
+        compgen -c "${compgen_args[@]}" | sort -u;
+        compgen -abk -A function "${compgen_args[@]}";
+        } | sort | uniq -u | sed -e s/"^${exclude}$"// -e s/"${prefix}"// -e s/~.*$//) )"
 }
 
+_ndtoolbelt_autocomplete_command_arg_completions() {
+    # Sets the variable at $1 to the possible matches for the next word of the command with the
+    # namespace path indicated in $2 and the current partial word in $3.
+    local target=$1
+    local path=("${!2}")  # Expand the array reference ("arr[@]") described in $2
+
+    # Find and run any completion commands found on the path
+    local arg_completions=()
+    local nspath=''
+    for segment in "${path[@]}"; do
+        local command="nd-${nspath}${segment}"
+        # Find any completion scripts
+        local completion_commands=($(compgen -c "${command}.completion" | sort -u))
+        for completion_command in "${completion_commands[@]}"; do
+            if [[ $completion_command =~ .(sh|bash)$ ]]; then
+                arg_completions+=($(source $completion_command))
+            else
+                arg_completions+=($(COMP_WORDS="${COMP_WORDS[@]}" COMP_CWORD=$COMP_CWORD \
+                                  $completion_command))
+            fi
+        done
+        nspath="${nspath}${segment}~"
+    done
+
+    declare -ga "${target}"="(${arg_completions[*]})"
+}
 
 _ndtoolbelt_autocomplete_hook() {
     local words_ cword_
@@ -38,19 +72,15 @@ _ndtoolbelt_autocomplete_hook() {
         fi
     done
 
-    local nsprefix=''
-    if [[ ${#nspath[@]} > 0 ]]; then
-        # Joins the array with trailing tildes to gather the current namespace path
-        printf -v nsprefix "%s~" "${nspath[@]}"
-    fi
-    nsprefix="nd-$nsprefix"
+    _ndtoolbelt_autocomplete_find_matches COMPREPLY nspath[@] "$current_word"
 
-    _ndtoolbelt_autocomplete_find_matches COMPREPLY "$nsprefix" "$current_word"
+    _ndtoolbelt_autocomplete_command_arg_completions _ND_TOOLBELT_COMMAND_ARG_COMPLETIONS nspath[@]
+    COMPREPLY+=("${_ND_TOOLBELT_COMMAND_ARG_COMPLETIONS[@]}")
 
     # Add in help as an autocomplete option if current word has been started and matches 'help'
     if [[ -z "$help_found" ]] && [[ "help" = "$current_word"* ]]; then
         # Check to see if we have completed a namespace prior to 'help'
-        _ndtoolbelt_autocomplete_find_matches _ND_TOOLBELT_HELP_MATCHES "$nsprefix"
+        _ndtoolbelt_autocomplete_find_matches _ND_TOOLBELT_HELP_MATCHES nspath[@]
         if [[ -n $_ND_TOOLBELT_HELP_MATCHES ]]; then
             COMPREPLY+=("help")
         fi
