@@ -25,7 +25,10 @@ def truncate(s, length=75):
 
 def print_help_for_all_commands(parser, args, path=()):
     prefix = 'nd-' + '~'.join(path)
-    autocompleted_commands = autocomplete.get_executables_starting_with(prefix)
+
+    autocompleted_commands = [
+        c for c in autocomplete.get_executables_starting_with(prefix)
+        if not re.search('.completion(..*)?$', c)]
 
     nd_command_list = sorted(set(autocompleted_commands) - set(args.exclude))
     if not nd_command_list:

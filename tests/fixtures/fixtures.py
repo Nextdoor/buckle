@@ -1,3 +1,6 @@
+from builtins import str
+
+import contextlib
 import fcntl
 import functools
 import io
@@ -10,16 +13,71 @@ import traceback
 import pytest  # flake8: noqa
 
 
+class OutputResult(str):
+    def __init__(self, capture_func):
+        self._result = None
+        self._capture_func = capture_func
+        capture_func()  # Flush the buffer
+
+    @property
+    def _result(self):
+        result = self.__dict__['_result']
+        assert result is not None, "Result cannot be read until after context exit"
+        return result
+
+    @_result.setter
+    def _result(self, value):
+        self.__dict__['_result'] = value
+
+    def __str__(self):
+        return str(self._result)
+
+    def __contains__(self, key):
+        return key in self._result
+
+    def __repr__(self):
+        name = type(self).__name__
+        try:
+            return "{}: '{}'".format(name, self._result)
+        except AssertionError as e:
+            return "{}: {}".format(name, e)
+
+    def __iter__(self):
+        return iter(self._result)
+
+    def __eq__(self, other):
+        return self._result == other
+
+    def capture(self):
+        assert self.__dict__['_result'] is None, "done() was already called"
+        self._result = self._capture_func()
+
+
 @pytest.fixture()
 def readout(capfd):
-    """ Capture stdout """
-    return lambda: capfd.readouterr()[0]
+
+    @contextlib.contextmanager
+    def manager():
+        """ Capture stdout """
+        result = OutputResult(lambda: capfd.readouterr()[0])
+        yield result
+        result.capture()
+
+    return manager
 
 
 @pytest.fixture()
 def readerr(capfd):
     """ Capture stderr """
-    return lambda: capfd.readouterr()[1]
+
+    @contextlib.contextmanager
+    def manager():
+        """ Capture stdout """
+        result = OutputResult(lambda: capfd.readouterr()[1])
+        yield result
+        result.capture()
+
+    return manager
 
 
 @pytest.fixture()

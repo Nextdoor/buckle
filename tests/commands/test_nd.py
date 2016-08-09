@@ -43,22 +43,25 @@ class TestNdCommand:
         """ Handle executing nd command in path with arguments passed from nd """
 
         self.executable_factory('nd-my-command', '#!/bin/echo')
-        self.run_as_child(nd.main, ['nd', 'my-command', '--my-option', 'my-argument'])
-        assert '--my-option my-argument' in self.readout()
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', 'my-command', '--my-option', 'my-argument'])
+        assert '--my-option my-argument' in output
 
     def test_runs_command(self):
         """ Handle executing nd command in path """
 
         self.executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
-        self.run_as_child(nd.main, ['nd', 'my-command'])
-        assert self.readout() == 'my command output\n'
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', 'my-command'])
+        assert output == 'my command output\n'
 
     def test_calls_help_if_given_no_commands_or_arguments(self):
         """ Handle nd being passed no command or namespace """
 
         self.executable_factory('nd-help', '#!/bin/bash\necho -n help "<$@>"')
-        self.run_as_child(nd.main, ['nd'])
-        assert 'help <>' in self.readout()
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd'])
+        assert 'help <>' in output
 
     def test_calls_help_if_namespace_given_without_command(self):
         """ Handle executing nd namespace in path """
@@ -66,15 +69,17 @@ class TestNdCommand:
         self.executable_factory('nd-help', '#!/bin/bash\necho -n $@')
         self.executable_factory('nd-my-namespace~my-command')
 
-        self.run_as_child(nd.main, ['nd', 'my-namespace'])
-        assert self.readout() == 'my-namespace'
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', 'my-namespace'])
+        assert output == 'my-namespace'
 
     def test_calls_help_for_command_when_help_is_first_argument(self):
         """ Handle executing nd-help for command in path """
 
         self.executable_factory('nd-help', '#!/bin/bash\necho -n $@')
-        self.run_as_child(nd.main, ['nd', 'help', 'my-command'])
-        assert self.readout() == 'my-command'
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', 'help', 'my-command'])
+        assert output == 'my-command'
 
     def test_command_or_namespace_not_found(self):
         """ Handle being given a command or namespace not in path """
@@ -115,24 +120,27 @@ class TestDotCommand:
 
         self.executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
         self.executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
-        self.run_as_child(nd.main, ['nd', 'my-command'])
-        assert self.readout() == 'my dot command output\nmy command output\n'
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', 'my-command'])
+        assert output == 'my dot command output\nmy command output\n'
 
     def test_dot_commands_are_passed_command_name_and_arguments(self):
         """ All dot commands get passed the target namespace + command and its arguments """
 
         self.executable_factory('nd-my-namespace~.my-check', '#!/bin/bash\necho $@')
         self.executable_factory('nd-my-namespace~my-command', '#!/bin/bash\necho my command output')
-        self.run_as_child(nd.main, ['nd', 'my-namespace', 'my-command', 'arg1', 'arg2'])
-        assert self.readout() == 'my-namespace my-command arg1 arg2\nmy command output\n'
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', 'my-namespace', 'my-command', 'arg1', 'arg2'])
+        assert output == 'my-namespace my-command arg1 arg2\nmy command output\n'
 
     def test_dot_commands_run_as_command_does_not_run_dot_commands_prior_to_running(self):
         """ When calling a dot command directly, do not call dot commands prior to executing """
 
         self.executable_factory('nd-.my-first-check', '#!/bin/bash\necho my first check')
         self.executable_factory('nd-.my-second-check', '#!/bin/bash\necho my second check')
-        self.run_as_child(nd.main, ['nd', '.my-first-check'])
-        assert self.readout() == 'my first check\n'
+        with self.readout() as output:
+            self.run_as_child(nd.main, ['nd', '.my-first-check'])
+        assert output == 'my first check\n'
 
 
 class TestNdOptions:
@@ -140,9 +148,9 @@ class TestNdOptions:
                                                             disable_dot_commands, readerr):
         """ Handle the case where --update and --no-update are both called as options """
 
-        with pytest.raises(SystemExit):
+        with readerr() as errout, pytest.raises(SystemExit):
             nd.main(['nd', '--update', '--no-update', 'version'])
-        assert '--no-update: not allowed with argument --update' in readerr()
+        assert '--no-update: not allowed with argument --update' in errout
 
     def test_dot_commands_disabled_option(self, disable_clock_check, disable_update,
                                        executable_factory, readout, run_as_child):
@@ -150,8 +158,9 @@ class TestNdOptions:
 
         executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
         executable_factory('nd-my-command', '#!/bin/bash\necho my command output')
-        run_as_child(nd.main, ['nd', '--skip-dot-commands', 'my-command'])
-        assert readout() == 'my command output\n'
+        with readout() as output:
+            run_as_child(nd.main, ['nd', '--skip-dot-commands', 'my-command'])
+        assert output == 'my command output\n'
 
 
 class TestParseArgs:
@@ -228,39 +237,43 @@ class TestNdCheckSystemClock:
         """ Running nd with accurate system time does not print to readerr """
 
         ntp_response_factory(0)
-        nd.check_system_clock(check_clock_freq=0)
-        err = readerr()
+        with readerr() as err:
+            nd.check_system_clock(check_clock_freq=0)
         assert 'WARNING:' not in err and 'ERROR:' not in err
 
     def test_warning_if_system_clock_is_too_far_behind(self, readerr, ntp_response_factory):
         """ Running nd with system time too far behind the threshold prints to readerr """
 
         ntp_response_factory(120)
-        nd.check_system_clock(check_clock_freq=0)
-        assert re.search(r'The system clock is behind by \d+', readerr())
+        with readerr() as err:
+            nd.check_system_clock(check_clock_freq=0)
+        assert re.search(r'The system clock is behind by \d+', str(err))
 
     def test_warning_if_system_clock_is_too_far_ahead(self, readerr, ntp_response_factory):
         """ Running nd with system time too far ahead the threshold prints to readerr """
 
         ntp_response_factory(-120)
-        nd.check_system_clock(check_clock_freq=0)
-        assert re.search(r'The system clock is behind by -\d+', readerr())
+        with readerr() as err:
+            nd.check_system_clock(check_clock_freq=0)
+        assert re.search(r'The system clock is behind by -\d+', str(err))
 
     def test_nd_continues_if_get_ntp_time_times_out(self, readerr):
         """ Handle ntp request for current time timing out """
 
         with mock.patch.object(socket, 'socket') as mock_socket:
             mock_socket.return_value.recvfrom.side_effect = socket.timeout()
-            nd.check_system_clock(check_clock_freq=0)
-            assert 'timed out.' in readerr()
+            with readerr() as err:
+                nd.check_system_clock(check_clock_freq=0)
+            assert 'timed out.' in err
 
     def test_nd_continues_if_get_ntp_time_raises_socket_error(self, readerr):
         """ Handle ntp request for socket raising an error """
 
         with mock.patch.object(socket, 'socket') as mock_socket:
             mock_socket.return_value.sendto.side_effect = socket.error()
-            nd.check_system_clock(check_clock_freq=0)
-            assert 'Error checking network time, exception: ' in readerr()
+            with readerr() as err:
+                nd.check_system_clock(check_clock_freq=0)
+            assert 'Error checking network time, exception: ' in err
 
 
 class TestRunDotCommands:
@@ -276,16 +289,18 @@ class TestRunDotCommands:
             echo $1
             echo $2
             echo $3""")
-        nd.run_dot_commands(['my-namespace'], 'my-command', ['arg1', 'arg2'])
-        assert readout() == 'my-namespace my-command\narg1\narg2\n'
+        with readout() as output:
+            nd.run_dot_commands(['my-namespace'], 'my-command', ['arg1', 'arg2'])
+        assert output == 'my-namespace my-command\narg1\narg2\n'
 
     def test_dot_commands_run_only_once(self, executable_factory, monkeypatch, readout):
         """ Handle the dot command appearing multiple times on path by running it only once """
 
         tmp_path = executable_factory('nd-.my-check', '#!/bin/bash\necho my dot command output')
         monkeypatch.setenv('PATH', tmp_path, prepend=':')
-        nd.run_dot_commands([], '', [])
-        assert readout() == 'my dot command output\n'
+        with readout() as output:
+            nd.run_dot_commands([], '', [])
+        assert output == 'my dot command output\n'
 
     def test_dot_command_fails_triggers_system_exit(self, executable_factory):
         """ Handle dot command failing with exit code not zero by exiting system """
@@ -306,8 +321,9 @@ class TestRunDotCommands:
         executable_factory('nd-.my-checkC', '#!/bin/bash\necho dot command C output')
         executable_factory('nd-.my-checkA', '#!/bin/bash\necho dot command A output')
         executable_factory('nd-.my-checkB', '#!/bin/bash\necho dot command B output')
-        nd.run_dot_commands([], '', [])
-        assert readout() == 'dot command A output\ndot command B output\ndot command C output\n'
+        with readout() as output:
+            nd.run_dot_commands([], '', [])
+        assert output == 'dot command A output\ndot command B output\ndot command C output\n'
 
     def test_child_dot_commands_do_not_run(self, executable_factory, readout):
         """ Dot commands in child namespaces do not get called """
@@ -315,8 +331,9 @@ class TestRunDotCommands:
         executable_factory('nd-.my-check', '#!/bin/bash\necho parent dot command output')
         executable_factory('nd-my-namespace~.my-check',
                            '#!/bin/bash\necho child dot command output')
-        nd.run_dot_commands([], '', [])
-        assert readout() == 'parent dot command output\n'
+        with readout() as output:
+            nd.run_dot_commands([], '', [])
+        assert output == 'parent dot command output\n'
 
     def test_dot_commands_run_in_order_of_namespace(self, executable_factory, readout):
         """ Dot commands in parent namespaces run before its children """
@@ -326,6 +343,7 @@ class TestRunDotCommands:
                            '#!/bin/bash\necho child dot command output')
         executable_factory('nd-my-namespace~subnamespace~.my-check',
                            '#!/bin/bash\necho grandchild dot command output')
-        nd.run_dot_commands(['my-namespace', 'subnamespace'], '', [])
-        assert readout() == ('parent dot command output\nchild dot command output\n'
-                             'grandchild dot command output\n')
+        with readout() as output:
+            nd.run_dot_commands(['my-namespace', 'subnamespace'], '', [])
+        assert output == ('parent dot command output\nchild dot command output\n'
+                          'grandchild dot command output\n')

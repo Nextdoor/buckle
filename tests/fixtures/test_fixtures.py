@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import subprocess
 import sys
@@ -68,3 +70,38 @@ class TestExecutableFactory:
         with open(path) as f:
             contents = f.read()
         assert contents == '            This command is not indented\n            No way!'
+
+
+class TestReadout:
+    def test_capture(self, readout):
+        print('before context')
+        with readout() as output:
+            print('hello', end='')
+        assert 'hello' in output
+        assert 'hello' in output  # Check again to make sure it's idempotent
+        assert 'hel' in output  # Partial string match
+        assert output == 'hello'
+        assert 'hello' in repr(output)
+
+    def test_premature_capture(self, readout):
+        with pytest.raises(AssertionError):
+            with readout() as output:
+                assert 'hello' in output
+        assert 'Result cannot be read until after context exit' in repr(output)
+
+class TestReaderr:
+    def test_capture(self, readerr):
+        print('before context')
+        with readerr() as output:
+            print('hello', file=sys.stderr, end='')
+        assert 'hello' in output
+        assert 'hello' in output  # Check again to make sure it's idempotent
+        assert 'hel' in output  # Partial string match
+        assert output == 'hello'
+        assert 'hello' in repr(output)
+
+    def test_premature_capture(self, readerr):
+        with pytest.raises(AssertionError):
+            with readerr() as output:
+                assert 'hello' in output
+        assert 'Result cannot be read until after context exit' in repr(output)
