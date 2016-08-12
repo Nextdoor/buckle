@@ -123,11 +123,15 @@ def maybe_reload_with_updates(argv):
             subprocess.check_output(['touch', updated_path])
             message.info('Checking for toolbelt updates...')
 
+            # Disable password prompt
+            env = os.environ.copy()
+            env.update({'GIT_ASKPASS': '/bin/echo'})
+
             branch = subprocess.check_output(
                 'git rev-parse --abbrev-ref HEAD', cwd=nd_toolbelt_root, shell=True).decode('utf-8')
             process = subprocess.Popen('git pull origin {}'.format(branch), cwd=nd_toolbelt_root,
                                        shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                       stderr=subprocess.STDOUT, close_fds=True)
+                                       stderr=subprocess.STDOUT, close_fds=True, env=env)
             output = process.stdout.read().decode('utf-8')
             process.communicate()  # Collect the return code
 
