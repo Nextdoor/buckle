@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+
+import buckle.commands.readme as command
+
+command.main()

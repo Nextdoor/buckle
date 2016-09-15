@@ -1,5 +1,5 @@
 #!/bin/bash
-TEST_DIRECTORY="$(mktemp -d nd-toolbelt_readme.XXXXX --tmpdir)"
+TEST_DIRECTORY="$(mktemp -d buckle_readme.XXXXX --tmpdir)"
 trap "rm -rf $TEST_DIRECTORY" EXIT
 cd $TEST_DIRECTORY
 

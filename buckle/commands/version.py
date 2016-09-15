@@ -5,11 +5,11 @@ Prints tool version.
 """
 
 
-import nd_toolbelt.version
+import buckle.version
 
 
 def main(*argv):
-    print(nd_toolbelt.version.VERSION)
+    print(buckle.version.VERSION)
 
 if __name__ == "__main__":
     main()

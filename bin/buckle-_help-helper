@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+
+import buckle.commands.help_helper as command
+
+command.main()

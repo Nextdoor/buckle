@@ -3,7 +3,7 @@ import socket
 
 import pytest
 
-from nd_toolbelt import ntp
+from buckle import ntp
 
 
 class TestGetNtpTimeClass(object):

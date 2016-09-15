@@ -4,7 +4,7 @@ import subprocess
 
 import pytest  # flake8: noqa
 
-from nd_toolbelt import autocomplete
+from buckle import autocomplete
 
 from fixtures import executable_factory
 

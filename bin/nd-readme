@@ -1,5 +1,0 @@
-#!/usr/bin/env python
-
-import nd_toolbelt.commands.readme as command
-
-command.main()

@@ -1,4 +1,4 @@
-from nd_toolbelt import autocomplete
+from buckle import autocomplete
 
 
 class CommandOrNamespaceNotFound(Exception):
@@ -21,10 +21,11 @@ class CommandNotFound(CommandOrNamespaceNotFound):
     prefix = 'Command'
 
 
-def split_path_and_command(args, namespace_separator='~'):
+def split_path_and_command(toolbelt_name, args, namespace_separator='~'):
     """ Parses a list of arguments and separates a command from its arguments and namespace.
 
     Args:
+        toolbelt_name: name of the toolbelt
         args: a list of arguments to be parsed.
 
     Returns:
@@ -42,7 +43,8 @@ def split_path_and_command(args, namespace_separator='~'):
     for cmd_end, arg in enumerate(args):
         path = list(args[:cmd_end])
         rest = list(args[cmd_end+1:])
-        prefix = 'nd-' + namespace_separator.join(path + [arg])
+
+        prefix = toolbelt_name + '-' + namespace_separator.join(path + [arg])
 
         # Find executables where the prefix is the whole command or the prefix is a complete
         # namespace

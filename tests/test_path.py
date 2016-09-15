@@ -2,11 +2,11 @@ import pytest  # flake8: noqa
 
 from fixtures import executable_factory, run_as_child
 
-from nd_toolbelt import path
+from buckle import path
 
 
 def split(*args):
-    return path.split_path_and_command(args)
+    return path.split_path_and_command('nd', args)
 
 
 class TestSplitPathAndCommand(object):

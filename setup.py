@@ -1,20 +1,20 @@
-from nd_toolbelt.version import VERSION
+from buckle.version import VERSION
 
 from setuptools import setup, find_packages
 
 setup(
-    name='nd-toolbelt',
+    name='buckle',
     version=VERSION,
-    description='Nextdoor Toolbelt',
-    author='Dev Tools Team',
-    author_email='dev-tools-team@nextdoor.com',
+    description='Buckle: It ties your toolbelt together',
+    author='Nextdoor',
+    author_email='eng@nextdoor.com',
     packages=find_packages(exclude=['ez_setup']),
-    scripts=['bin/nd',
-             'bin/nd-init',
-             'bin/nd-help',
-             'bin/nd-_help-helper',
-             'bin/nd-readme',
-             'bin/nd-version',
+    scripts=['bin/buckle',
+             'bin/buckle-init',
+             'bin/buckle-help',
+             'bin/buckle-_help-helper',
+             'bin/buckle-readme',
+             'bin/buckle-version',
              ],
     test_suite="tests",
     install_requires=[
@@ -23,6 +23,6 @@ setup(
     tests_require=[
         'pytest',
     ],
-    url='https://https://git.corp.nextdoor.com/Nextdoor/nd-toolbelt',
+    url='https://git.corp.nextdoor.com/Nextdoor/buckle',
     include_package_data=True
 )

@@ -4,7 +4,8 @@ load test_helpers
 
 setup() {
 	_shared_setup
-	source $BATS_TEST_DIRNAME/../nd_toolbelt/nd-init.sh
+	source $BATS_TEST_DIRNAME/../buckle/init.sh -
+	_buckle_autocomplete_setup nd
 }
 
 make_empty_command() {
@@ -14,7 +15,7 @@ make_empty_command() {
 @test "'nd <tab>' autocompletes commands that begin with 'nd-'" {
 	make_empty_command nd-my-command
 	COMP_WORDS=(nd my)
-	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=1 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -26,7 +27,7 @@ make_empty_command() {
 	[[ "${found[@]}" = "nd-my-command nd-my-command" ]]
 
 	COMP_WORDS=(nd my-c)
-	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=1 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -34,7 +35,7 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=("nd" "my-namespace" "my")
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -42,7 +43,7 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-subnamespace~my-command
 
 	COMP_WORDS=( nd my-namespace my-subnamespace my)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -50,7 +51,7 @@ make_empty_command() {
 	make_empty_command nd-grandparent-namespace~parent-namespace~child_my-command
 
 	COMP_WORDS=(nd grandparent-namespace)
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "parent-namespace help" = "${COMPREPLY[*]}" ]]
 }
 
@@ -58,13 +59,13 @@ make_empty_command() {
 	make_empty_command nd-my-command TEST_DIR
 	COMP_WORDS=(nd my-com)
 	COMP_CWORD=1
-	_ndtoolbelt_autocomplete_hook
+	_buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 
 	# Try an alias instead
 	alias nd-my-command="echo test"
 	rm $TEST_DIR/nd-my-command
-	_ndtoolbelt_autocomplete_hook
+	_buckle_autocomplete_hook
 	[ -z "$COMPREPLY" ]
 }
 
@@ -72,20 +73,20 @@ make_empty_command() {
 	make_empty_command nd-my-command TEST_DIR
 	COMP_WORDS=(nd my-com)
 	COMP_CWORD=1
-	_ndtoolbelt_autocomplete_hook
+	_buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 
 	# Try a function instead
 	nd-my-commmand() { true; }
 	rm $TEST_DIR/nd-my-command
-	_ndtoolbelt_autocomplete_hook
+	_buckle_autocomplete_hook
 	[ -z "$COMPREPLY" ]
 }
 
 @test "'nd help' autocomplete returns matches that begin with nd" {
 	make_empty_command nd-toolbelt-my-command
 	COMP_WORDS=(nd help toolbelt-my)
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "toolbelt-my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -94,7 +95,7 @@ make_empty_command() {
 	chmod +x $TEST_DIRECTORY/nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace help my)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -102,7 +103,7 @@ make_empty_command() {
 	make_empty_command nd-grandparent-namespace~parent-namespace~child-namespace~my-command
 
 	COMP_WORDS=(nd grandparent-namespace parent-namespace help child)
-	COMP_CWORD=4 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=4 _buckle_autocomplete_hook
 	[[ "child-namespace" = "${COMPREPLY[*]}" ]]
 }
 
@@ -110,13 +111,13 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd help my-na)
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "my-namespace" = "${COMPREPLY[*]}" ]]
 }
 
 @test "'nd help help <tab>' does not include 'help' again in the autocomplete choices" {
 	COMP_WORDS=(nd help help)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ -z "${COMPREPLY[*]}" ]]
 }
 
@@ -124,7 +125,7 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace)
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "my-command help" = "${COMPREPLY[*]}" ]]
 }
 
@@ -132,7 +133,7 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace h)
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "help" = "${COMPREPLY[*]}" ]]
 }
 
@@ -140,7 +141,7 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace help)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[*]}" ]]
 }
 
@@ -148,7 +149,7 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace my-command)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ "" = "${COMPREPLY[*]}" ]]
 }
 
@@ -156,11 +157,11 @@ make_empty_command() {
 	make_empty_command nd-_my-command
 
 	COMP_WORDS=(nd)
-	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=1 _buckle_autocomplete_hook
 	[[  "${COMPREPLY[*]}" != *"_my-command"* ]]
 
 	COMP_WORDS=(nd '_')
-	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=1 _buckle_autocomplete_hook
 	[[ "${COMPREPLY[*]}" = *"_my-command"* ]]
 }
 
@@ -168,11 +169,11 @@ make_empty_command() {
 	make_empty_command nd-.my-command
 
 	COMP_WORDS=(nd)
-	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=1 _buckle_autocomplete_hook
 	[[  "${COMPREPLY[*]}" != *".my-command"* ]]
 
 	COMP_WORDS=(nd '.')
-	COMP_CWORD=1 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=1 _buckle_autocomplete_hook
 	[[ "${COMPREPLY[*]}" = *".my-command"* ]]
 }
 
@@ -180,11 +181,11 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd -some-option my-namespace)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[  "${COMPREPLY[*]}" = "my-command help" ]]
 
 	COMP_WORDS=(nd --some-option my-namespace)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[  "${COMPREPLY[*]}" = "my-command help" ]]
 }
 
@@ -192,11 +193,11 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd -some-option=10 my-namespace)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[  "${COMPREPLY[*]}" = "my-command help" ]]
 
 	COMP_WORDS=(nd --some-option=10 my-namespace)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[  "${COMPREPLY[*]}" = "my-command help" ]]
 }
 
@@ -204,11 +205,11 @@ make_empty_command() {
 	make_empty_command nd-my-namespace~my-command
 
 	COMP_WORDS=(nd my-namespace -some-option my-co)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[  -z "${COMPREPLY[*]}" ]]
 
 	COMP_WORDS=(nd my-namespace --some-option my-co)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[  -z "${COMPREPLY[*]}" ]]
 }
 
@@ -219,12 +220,12 @@ make_empty_command() {
 		echo "${COMP_WORDS[@]} word$COMP_CWORD"
 EOF
 	COMP_WORDS=(nd my-namespace my-command my-arg)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ "nd my-namespace my-command my-arg word3" = "${COMPREPLY[@]}" ]]
 
 	# Check that autocomplete doesn't include the completion script itself
 	COMP_WORDS=(nd my-namespace my-command)
-	COMP_CWORD=2 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=2 _buckle_autocomplete_hook
 	[[ "my-command" = "${COMPREPLY[@]}" ]]
 }
 
@@ -238,12 +239,12 @@ EOF
 		echo "${COMP_WORDS[@]} namespace_word$COMP_CWORD"
 EOF
 	COMP_WORDS=(nd my-namespace my-command my-arg)
-	COMP_CWORD=3 _ndtoolbelt_autocomplete_hook
+	COMP_CWORD=3 _buckle_autocomplete_hook
 	[[ "nd my-namespace my-command my-arg word3 nd my-namespace my-command my-arg namespace_word3" \
 	    = "${COMPREPLY[@]}" ]]
 }
 
-@test "_ndtoolbelt_autocomplete_command_arg_completions sets completion from 'sourced' script output" {
+@test "_buckle_autocomplete_command_arg_completions sets completion from 'sourced' script output" {
     make_empty_command nd-my-namespace~my-command
     make_executable_command nd-my-namespace~my-command.completion.sh <<- 'EOF'
 		echo "${COMP_WORDS[@]} word$COMP_CWORD $SOMETHING_NOT_EXPORTED"
@@ -252,6 +253,6 @@ EOF
     COMP_WORDS=(nd my-namespace my-command my-arg)
     COMP_CWORD=3
 	NSPATH=(my-namespace my-command)
-	_ndtoolbelt_autocomplete_command_arg_completions COMPLETIONS NSPATH[@]
+	_buckle_autocomplete_command_arg_completions COMPLETIONS nd NSPATH[@]
 	[[ "nd my-namespace my-command my-arg word3 something_not_exported" = "${COMPLETIONS[@]}" ]]
 }

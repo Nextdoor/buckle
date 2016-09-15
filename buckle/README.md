@@ -1,11 +1,14 @@
-# nd-toolbelt
+# buckle
 
-A tool for centralizing and executing developer commands in your path.
-It finds and autocompletes commands beginning with 'nd-', and supports
-help for commands within its namespaces. The toolbelt attempts to
-automatically update itself every hour, and also checks the system clock
-every 10 minutes to warn the user if their clock is 120 seconds out of
-date.
+Buckle is a tool for centralizing and executing developer commands in
+your path. It's goal is to make it easy to create a toolbelt from
+disparate commands that all begin with the same prefix. It finds and
+autocompletes commands beginning with a prefix (such as `'`nd-`), and
+supports help for commands within its namespaces. Buckle also attempts
+to automatically update itself every hour, and also checks the system
+clock every 10 minutes towarn the user if their clock is 120 seconds out
+of date.
+
 
 ## Developer Setup
 
@@ -14,9 +17,10 @@ Run `make init` to install the tools you need.
 ## Installation
 
 Clone the repo and then run `pip install -e <repo>`.  By cloning it,
-nd-toolbelt will auto-update.
+buckle will auto-update.
 
-To set up autocomplete, run `eval "$(nd init -)"`.
+To set up autocomplete for a toolbelt called `nd`, run
+`eval "$(buckle init nd)"`.
 
 ## Usage
 
@@ -26,17 +30,15 @@ standard auto completion within the nd namespace.
 
 ## Creating Toolbelt Commands
 
-Adding a command to nd-toolbelt is as simple as including it to your
-path. You can add a command to nextdoor.com by including the your
-command or a link to your command under `$NEXTDOOR_ROOT/tools/bin.`
+Adding a command to buckle is as simple as including it to your
+path.
 
-Your toolbelt command must start with `nd-`. The following rules also
-apply:
+Your toolbelt command must start with `<toolbelt name>-`, such as `nd-`
+if your toolbelt is called `nd`. The following rules also apply:
 
 * Namespaces must be separated by **`~`**'s. e.g.: `nd dev migrate`
 should be named `nd-dev~migrate`
 * Commands starting with `_` aren't shown in autocomplete options.
-e.g.: `nd-_help-helper`
 * Commands starting with `.` are run before every command in its
 namespace and child namespaces. e.g.: `nd-dev~.check`. Dot commands are
 run alphabetically. If a dot command fails to execute

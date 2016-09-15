@@ -1,6 +1,6 @@
 import argparse
 
-from nd_toolbelt import help_formatters
+from buckle import help_formatters
 
 
 def test_dedent_argument_defaults_help_formatter():

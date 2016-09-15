@@ -17,7 +17,7 @@ README_PATH = '../README.md'
 
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description='View the README.md for nd-toolbelt project.')
+                                     description='View the README.md for buckle project.')
     parser.add_argument('--interactive', action='store_true', default=None,
                         help='Use interactive markdown viewer')
     args = parser.parse_args(argv[1:])

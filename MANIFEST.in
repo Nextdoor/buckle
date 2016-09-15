@@ -1,2 +1,3 @@
-include nd_toolbelt/nd-init.sh
-include nd_toolbelt/README.md
+include buckle/init.sh
+include buckle/help-helper.sh
+include buckle/README.md
