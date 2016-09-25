@@ -23,6 +23,6 @@ setup(
     tests_require=[
         'pytest',
     ],
-    url='https://git.corp.nextdoor.com/Nextdoor/buckle',
+    url='https://github.com/Nextdoor/buckle',
     include_package_data=True
 )
