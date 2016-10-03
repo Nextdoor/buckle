@@ -58,6 +58,15 @@ class TestBaseCommand:
             self.run_as_child(base.main, ['buckle', 'my-command'])
         assert output == 'my command output\n'
 
+    def test_favors_builtin_command(self):
+        """ Builtin buckle command is favored over a non-buckle version in path """
+
+        self.executable_factory('nd-init', '#!/bin/bash\necho nd init')
+        self.executable_factory('buckle-init', '#!/bin/bash\necho my buckle command output')
+        with self.readout() as output:
+            self.run_as_child(base.main, ['nd', 'init'])
+        assert output == 'my buckle command output\n'
+
     def test_calls_help_if_given_no_commands_or_arguments(self):
         """ Toolbelt without no command or namespace runs help """
 
@@ -77,9 +86,9 @@ class TestBaseCommand:
         assert output == 'my-namespace'
 
     def test_calls_help_for_command_when_help_is_first_argument(self):
-        """ Handle executing nd-help for command in path """
+        """ Handle executing buckle-help for command in path """
 
-        self.executable_factory('nd-help', '#!/bin/bash\necho -n $@')
+        self.executable_factory('buckle-help', '#!/bin/bash\necho -n $@')
         with self.readout() as output:
             self.run_as_child(base.main, ['buckle', 'help', 'my-command'])
         assert output == 'my-command'
@@ -173,6 +182,14 @@ class TestOptions:
 
 
 class TestParseArgs:
+    @pytest.fixture(autouse=True)
+    def set_toolbelt_name(self, monkeypatch):
+        monkeypatch.setenv('BUCKLE_TOOLBELT_NAME', 'nd')
+
+    @pytest.fixture(autouse=True)
+    def set_minimal_path(self, monkeypatch):
+        monkeypatch.setenv('PATH', '/usr/bin:/bin')
+
     @staticmethod
     def split(toolbelt_name, *args):
         command = base.Command(toolbelt_name)

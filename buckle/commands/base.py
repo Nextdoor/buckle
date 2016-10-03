@@ -56,7 +56,7 @@ class Command(object):
 
         Returns:
             Tuple:
-                - toolbelt name
+                - toolbelt name (buckle or BUCKLE_TOOLBELT_NAME)
                 - args
 
         """
@@ -215,7 +215,15 @@ class Command(object):
             self.run_dot_commands(args.namespace, args.command, args.args)
 
         flush_file_descriptors()
-        path = toolbelt + '-{}'.format('~'.join(args.namespace + [args.command]))
+        command = '-{}'.format('~'.join(args.namespace + [args.command]))
+        path = toolbelt + command
+        # Use builtin version if available
+        buckle_path = 'buckle' + command
+        try:
+            subprocess.check_output('type ' + buckle_path, shell=True, stderr=subprocess.STDOUT)
+            path = buckle_path
+        except subprocess.CalledProcessError:
+            pass
         env = os.environ.copy()
         env['BUCKLE_TOOLBELT_NAME'] = self.toolbelt_name
         try:
