@@ -1,3 +1,8 @@
+dependencies:
+  override:
+    - pip install tox tox-pyenv
+    - pyenv local 2.7.10 3.5.1
+
 test:
   override:
     # If 2 nodes are available, run a different python version on each
@@ -5,7 +10,7 @@ test:
         if [ "$CIRCLE_NODE_TOTAL" -gt "1" ]; then
           case $CIRCLE_NODE_INDEX in
             0) tox -e py27 ;;
-            1) tox -e py34 ;;
+            1) tox -e py35 ;;
           esac
         else
           tox
