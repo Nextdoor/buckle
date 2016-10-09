@@ -4,7 +4,7 @@ import socket
 import struct
 import time
 
-import pytest
+import pytest  # noqa
 
 from buckle import message
 from buckle import system_clock

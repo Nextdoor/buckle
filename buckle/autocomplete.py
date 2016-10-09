@@ -22,7 +22,7 @@ def find_commands_that_start_with(prefix, functions_only=False):
     try:
         results = subprocess.check_output('compgen {} "{}"'.format(opts, prefix),
                                           shell=True, executable='/bin/bash').decode('utf-8')
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         return []
     else:
         return sorted(results.split())

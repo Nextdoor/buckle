@@ -25,8 +25,9 @@ class Sender(object):
 
     def format(self, msg, level):
         """ Escapes a message with a color assigned based on its level. Informational messages
-        are green, warnings are yellow, and errors are red. The given prefix is prepended to the message
-        for namespace identification. If $TERM is not set, no color escape sequences are added.
+        are green, warnings are yellow, and errors are red. The given prefix is prepended to the
+        message for namespace identification. If $TERM is not set, no color escape sequences are
+        added.
 
         Args:
             msg: Given message
@@ -41,9 +42,10 @@ class Sender(object):
         return msg
 
     def write(self, msg, level):
-        """ Prints a message to stderr with a color assigned based on its level. Informational messages
-        are green, warnings are yellow, and errors are red. The given prefix is prepended to the message
-        for namespace identification. If $TERM is not set, no color escape sequences are added.
+        """ Prints a message to stderr with a color assigned based on its level. Informational
+        messages are green, warnings are yellow, and errors are red. The given prefix is prepended
+        to the message for namespace identification. If $TERM is not set, no color escape sequences
+        are added.
 
         Args:
             msg: Given message

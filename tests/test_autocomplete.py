@@ -2,11 +2,11 @@ import mock
 import stat
 import subprocess
 
-import pytest  # flake8: noqa
+import pytest  # noqa
 
 from buckle import autocomplete
 
-from fixtures import executable_factory
+from fixtures import executable_factory   # noqa
 
 STAT_OWNER_EXECUTABLE = stat.S_IEXEC
 

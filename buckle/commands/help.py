@@ -56,7 +56,7 @@ def print_help_for_all_commands(toolbelt_name, parser, args, path=()):
     for command in command_list:
         try:
             command_help_text = subprocess.check_output(
-               '{} --help 2> /dev/null'.format(command), shell=True).decode('utf-8')
+                '{} --help 2> /dev/null'.format(command), shell=True).decode('utf-8')
         except subprocess.CalledProcessError:
             help_text = None
         else:
@@ -79,14 +79,13 @@ def print_help_for_all_commands(toolbelt_name, parser, args, path=()):
     if not columns:
         rows, columns = os.popen('stty size', 'r').read().split()  # Get the console window size
 
-    max_key_length = max([0] + [len(' '.join(path)) for path in command_help_hash.keys()])
+    max_key_length = max([0] + [len(' '.join(k)) for k in command_help_hash.keys()])
 
     last_path = None
 
     for command_path, value in sorted(command_help_hash.items(),
-                                      key=lambda item: (
-                                              len(item[0]) > 1,  # commands without namespace first
-                                              item[0])):
+                                      # commands without namespace first
+                                      key=lambda item: (len(item[0]) > 1, item[0])):
         name = ' '.join(command_path)
 
         # Insert a line if we're starting a new namespace

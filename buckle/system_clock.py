@@ -48,4 +48,3 @@ def check_system_clock(message, check_clock_freq, ntp_host=DEFAULT_NTP_HOST,
                 pass
         else:
             subprocess.check_output(['touch', clock_checked_path])
-

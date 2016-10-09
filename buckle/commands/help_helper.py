@@ -8,8 +8,8 @@ import sys
 HELP_DESCRIPTION = """\
 Bash helper for creating program descriptions that can be included by buckle help.
 
-Insert $({toolbelt_name} _help-helper "<your help text>") at the top of a bash script to add a description that
-shows up when running '{toolbelt_name} help'.
+Insert $({toolbelt_name} _help-helper "<your help text>") at the top of a bash script to add a
+description that shows up when running '{toolbelt_name} help'.
 
 Example usage:
 

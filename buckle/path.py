@@ -42,7 +42,7 @@ def split_path_and_command(toolbelt_name, args, namespace_separator='~'):
     # Try increasingly long command names until command can't be found
     for cmd_end, arg in enumerate(args):
         path = list(args[:cmd_end])
-        rest = list(args[cmd_end+1:])
+        rest = list(args[cmd_end + 1:])
 
         prefix = toolbelt_name + '-' + namespace_separator.join(path + [arg])
 
