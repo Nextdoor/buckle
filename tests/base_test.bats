@@ -4,8 +4,6 @@ load test_helpers
 
 setup() {
 	_shared_setup
-	alias nd="BUCKLE_TOOLBELT_NAME=nd buckle"
-	shopt -s expand_aliases
 }
 
 make_null_command() {

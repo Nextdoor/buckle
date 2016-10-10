@@ -9,11 +9,12 @@ setup() {
 @test "evaluating 'nd _help-helper <help text>' prints the help text and exits successfully when '--help' is the first argument" {
     make_executable_command nd-my-command <<- 'EOF'
 		#!/bin/bash
-		eval "$(nd _help-helper "My help message")"
+		eval "$(buckle _help-helper "My help message")"
 		exit 1
 EOF
 
-    run nd my-command --help
+    BUCKLE_TOOLBELT_NAME=nd run buckle my-command --help
+    >&2 echo $output
     [[ $output = "My help message" ]]
     [[ $status = 0 ]]
 }

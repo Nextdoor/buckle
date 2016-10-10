@@ -1,3 +1,8 @@
+_setup_nd_alias() {
+	alias nd="BUCKLE_TOOLBELT_NAME=nd buckle"
+	shopt -s expand_aliases
+}
+
 _setup_tmp_directory() {
     export TMPDIR="$(mktemp -d buckle_test_tmp.XXXXX --tmpdir)"
     _append_to_exit_trap "rm -rf $TMPDIR"
@@ -20,7 +25,6 @@ _append_to_exit_trap() {
 
 _shared_setup() {
     _setup_tmp_directory
-
     # Create a fake git root so update checks happen quickly
     fake_root=$TMPDIR/fake-root
     mkdir $fake_root
@@ -29,6 +33,8 @@ _shared_setup() {
 
     # Pretend the clock was checked recently so we don't repeat the check on each test
     touch $TMPDIR/.buckle_clock_last_checked
+
+    _setup_nd_alias
 }
 
 make_executable_command() {

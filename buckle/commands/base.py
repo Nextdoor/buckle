@@ -23,7 +23,6 @@ def flush_file_descriptors():
     sys.stdout.flush()
     sys.stderr.flush()
 
-
 BUILTIN_TOOLBELT_NAME = 'buckle'
 
 HELP_DESCRIPTION = """\
@@ -182,7 +181,12 @@ class Command(object):
                     subprocess.check_output('pip install -e .', cwd=buckle_root, shell=True)
 
                     flush_file_descriptors()
-                    os.execvp(self.toolbelt_name, argv)  # Hand off to new version
+
+                    env = os.environ.copy()
+                    env['BUCKLE_TOOLBELT_NAME'] = self.toolbelt_name
+                    # Hand off to new version
+                    os.execvpe(BUILTIN_TOOLBELT_NAME,
+                               [BUILTIN_TOOLBELT_NAME] + argv, env=env)
                 elif process.returncode != 0:
                     self.message.error('Unable to update repository.')
 
@@ -218,7 +222,7 @@ class Command(object):
         command = '-{}'.format('~'.join(args.namespace + [args.command]))
         path = toolbelt + command
         # Use builtin version if available
-        buckle_path = 'buckle' + command
+        buckle_path = BUILTIN_TOOLBELT_NAME + command
         try:
             subprocess.check_output('type ' + buckle_path, shell=True, stderr=subprocess.STDOUT)
             path = buckle_path
