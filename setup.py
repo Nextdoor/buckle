@@ -23,6 +23,11 @@ setup(
     tests_require=[
         'pytest',
     ],
+    extras_require={
+        ':python_version <= "3.2"': [
+            'subprocess32',
+        ],
+    },
     url='https://github.com/Nextdoor/buckle',
     include_package_data=True
 )

@@ -183,7 +183,6 @@ class TestNamespaceHelp:
                 message.index('my-namespace my-subnamespace my-command') <
                 message.index('my-z-namespace my-command'))
 
-
     def test_excludes_completion_commands(self, executable_factory, readout):
         """ Doesn't report autocompletion scripts """
 
@@ -194,3 +193,12 @@ class TestNamespaceHelp:
             help.main(['nd'])
         assert 'my-command' in message
         assert 'my-command.completion' not in message
+
+    def test_slow_help_is_skipped(self, executable_factory, readout):
+        """ Skip printing help info for a slow help """
+
+        executable_factory('nd-my-command', '#!/usr/bin/env bash\nsleep 10\necho my help message')
+        with readout() as message:
+            with mock.patch.object(help, 'HELP_TIMEOUT', 0):
+                help.main(['nd'])
+        assert 'my-command   <help not found>' in message

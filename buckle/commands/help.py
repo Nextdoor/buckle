@@ -10,7 +10,6 @@ import argparse
 import os
 import re
 import shlex
-import subprocess
 import sys
 
 from buckle import autocomplete
@@ -18,12 +17,18 @@ from buckle import help_formatters
 from buckle import message
 from buckle import path as toolbelt_path
 
+if os.name == 'posix' and sys.version_info[0] < 3:
+    import subprocess32 as subprocess
+else:
+    import subprocess
 
 HELP_DESCRIPTION = """\
 {toolbelt_upper} Toolbelt Help
 
 Showing help for {tool_names}\
 """
+
+HELP_TIMEOUT = 2  # Seconds before we terminate --help run
 
 TOOLBELT_DESCRIPTION = """\
 For more details about the toolbelt, run '{toolbelt} readme'.
@@ -56,8 +61,9 @@ def print_help_for_all_commands(toolbelt_name, parser, args, path=()):
     for command in command_list:
         try:
             command_help_text = subprocess.check_output(
-                '{} --help 2> /dev/null'.format(command), shell=True).decode('utf-8')
-        except subprocess.CalledProcessError:
+                '{} --help 2> /dev/null'.format(command), shell=True,
+                timeout=HELP_TIMEOUT).decode('utf-8')
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
             help_text = None
         else:
             # Return first paragraph that is not empty or starts with usage
