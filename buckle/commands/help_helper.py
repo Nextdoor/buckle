@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 
+BUILTIN_TOOLBELT_NAME = 'buckle'
 
 HELP_DESCRIPTION = """\
 Bash helper for creating program descriptions that can be included by buckle help.
@@ -28,7 +29,7 @@ fi\
 
 
 def main(argv=sys.argv):
-    toolbelt_name = os.getenv('BUCKLE_TOOLBELT_NAME', 'buckle')
+    toolbelt_name = os.getenv('BUCKLE_TOOLBELT_NAME', BUILTIN_TOOLBELT_NAME)
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=HELP_DESCRIPTION.format(toolbelt_name=toolbelt_name))
