@@ -5,10 +5,10 @@
 Buckle is a tool for centralizing and executing developer commands in
 your path. It's goal is to make it easy to create a toolbelt from
 disparate commands that all begin with the same prefix. It finds and
-autocompletes commands beginning with a prefix (such as `'`nd-`), and
+autocompletes commands beginning with a prefix (such as `nd-`), and
 supports help for commands within its namespaces. Buckle also attempts
 to automatically update itself every hour, and also checks the system
-clock every 10 minutes towarn the user if their clock is 120 seconds out
+clock every 10 minutes to warn the user if their clock is 120 seconds out
 of date.
 
 
@@ -38,7 +38,7 @@ path.
 Your toolbelt command must start with `<toolbelt name>-`, such as `nd-`
 if your toolbelt is called `nd`. The following rules also apply:
 
-* Namespaces must be separated by **`~`**'s. e.g.: `nd dev migrate`
+* Namespaces must be separated by **`~`**. e.g.: `nd dev migrate`
 should be named `nd-dev~migrate`
 * Commands starting with `_` aren't shown in autocomplete options.
 * Commands starting with `.` are run before every command in its
