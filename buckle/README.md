@@ -1,5 +1,7 @@
 # buckle
 
+[![CircleCI](https://circleci.com/gh/Nextdoor/buckle.svg?style=shield)](https://circleci.com/gh/Nextdoor/buckle)
+
 Buckle is a tool for centralizing and executing developer commands in
 your path. It's goal is to make it easy to create a toolbelt from
 disparate commands that all begin with the same prefix. It finds and
