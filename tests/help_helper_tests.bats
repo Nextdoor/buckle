@@ -3,44 +3,42 @@
 load test_helpers
 
 setup() {
-    _shared_setup
+    _shared_setup belt
 }
 
-@test "evaluating 'nd _help-helper <help text>' prints the help text and exits successfully when '--help' is the first argument" {
-    make_executable_command nd-my-command <<- 'EOF'
+@test "evaluating 'buckle _help-helper <help text>' prints the help text and exits successfully when '--help' is the first argument" {
+    make_executable_command belt-my-command <<- 'EOF'
 		#!/bin/bash
 		eval "$(buckle _help-helper "My help message")"
-		exit 1
 EOF
 
-    BUCKLE_TOOLBELT_NAME=nd run buckle my-command --help
-    >&2 echo $output
+    BUCKLE_TOOLBELT_NAME=belt run buckle my-command --help
     [[ $output = "My help message" ]]
     [[ $status = 0 ]]
 }
 
-@test "evaluating 'nd _help-helper' has no effect when --help is not the first argument" {
+@test "evaluating 'buck _help-helper' has no effect when --help is not the first argument" {
     _setup_test_directory
 
-    make_executable_command nd-my-command <<- 'EOF'
+    make_executable_command belt-my-command <<- 'EOF'
 		#!/bin/bash
-		eval "$(nd _help-helper "My help message")"
+		eval "$(buckle _help-helper "My help message")"
 		echo "My command output"
 EOF
 
-    run nd my-command
+    BUCKLE_TOOLBELT_NAME=belt run buckle my-command
     [[ $output = "My command output" ]]
     [[ $status = 0 ]]
 }
 
-@test "'nd _help-helper --help' prints help" {
-    run nd _help-helper --help
+@test "'buckle _help-helper --help' prints help" {
+    BUCKLE_TOOLBELT_NAME=belt run buckle _help-helper --help
     [[ $output = *"usage"* ]]
     [[ $status = 0 ]]
 }
 
-@test "'nd help' includes description of _help-helper' " {
-    run nd help
+@test "'buckle help' includes description of _help-helper' " {
+    BUCKLE_TOOLBELT_NAME=belt run buckle help
     [[ $output = *"Bash helper"* ]]
     [[ $status = 0 ]]
 }

@@ -3,11 +3,11 @@
 load test_helpers
 
 setup() {
-	_setup_nd_alias
+	_setup_alias belt
 }
 
-@test "'nd readme' prints the raw readme file in non-interactive mode" {
-    actual="$(echo | nd readme)"
+@test "'belt readme' prints the raw readme file in non-interactive mode" {
+    actual="$(echo | belt readme)"
     expected="$(cat $BATS_TEST_DIRNAME/../README.md)"
     [[ "$actual" = "$expected" && -n "$actual" ]]
 }

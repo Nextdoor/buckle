@@ -49,7 +49,7 @@ be executed.**
 
 To enable bash completion for the arguments for a command named
 <command>, create a command to generate autocomplete choices for this
-named `<command>.complete[.<suffix>]`.  This command is passed the
+named `<command>.completion[.<suffix>]`.  This command is passed the
 standard bash completion environment variables, COMP_WORDS and
 COMP_CWORD.  If the script ends with a `.sh` or `.bash` suffix it will
 be sourced rather than executed, which is faster and gives it access to

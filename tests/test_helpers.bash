@@ -1,5 +1,6 @@
-_setup_nd_alias() {
-	alias nd="BUCKLE_TOOLBELT_NAME=nd buckle"
+_setup_alias() {
+    local command=$1
+	alias $command="BUCKLE_TOOLBELT_NAME=$1 buckle"
 	shopt -s expand_aliases
 }
 
@@ -24,6 +25,7 @@ _append_to_exit_trap() {
 }
 
 _shared_setup() {
+    local command=$1
     _setup_tmp_directory
     # Create a fake git root so update checks happen quickly
     fake_root=$TMPDIR/fake-root
@@ -34,7 +36,7 @@ _shared_setup() {
     # Pretend the clock was checked recently so we don't repeat the check on each test
     touch $TMPDIR/.buckle_clock_last_checked
 
-    _setup_nd_alias
+    _setup_alias $command
 }
 
 make_executable_command() {

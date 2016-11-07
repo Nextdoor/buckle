@@ -21,7 +21,7 @@ date
 
 OUTPUT = """\
 # Print help message consisting arguments passed to the original program
-if [[ "\$1" = "--help" ]]; then
+if [[ "$1" = "--help" ]]; then
     echo "{message}"
     exit 0
 fi\
