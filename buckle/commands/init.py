@@ -15,7 +15,6 @@ import pkg_resources
 
 SETUP_SCRIPT = """\
 _buckle_autocomplete_setup "{toolbelt_name}"
-alias "{toolbelt_name}='BUCKLE_TOOLBELT_NAME={toolbelt_name} buckle'"
 """
 
 
