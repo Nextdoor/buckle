@@ -38,5 +38,6 @@ def main(argv=sys.argv):
 
     print(OUTPUT.format(message=' '.join(args.message)))
 
+
 if __name__ == "__main__":
     main(sys.argv)

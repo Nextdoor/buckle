@@ -140,5 +140,6 @@ def main(argv=sys.argv):
     else:
         print_help_for_all_commands(toolbelt_name, parser, args, path=args.path)
 
+
 if __name__ == "__main__":
     main(sys.argv)

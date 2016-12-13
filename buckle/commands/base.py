@@ -23,6 +23,7 @@ def flush_file_descriptors():
     sys.stdout.flush()
     sys.stderr.flush()
 
+
 BUILTIN_TOOLBELT_NAME = 'buckle'
 
 HELP_DESCRIPTION = """\
@@ -239,6 +240,7 @@ class Command(object):
 def main(argv=sys.argv):
     toolbelt_name = os.getenv('BUCKLE_TOOLBELT_NAME', os.path.basename(argv[0]))
     Command(toolbelt_name).run(argv[1:])
+
 
 if __name__ == "__main__":
     main(sys.argv)

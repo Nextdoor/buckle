@@ -29,5 +29,6 @@ def main(argv=sys.argv):
     print(pkg_resources.resource_string(__name__, '../init.sh').decode('utf-8'))
     print(SETUP_SCRIPT.format(toolbelt_name=args.toolbelt_name))
 
+
 if __name__ == "__main__":
     main(sys.argv)
