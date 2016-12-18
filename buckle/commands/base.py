@@ -77,6 +77,8 @@ class Command(object):
 
         parser.add_argument('--no-clock-check', action='store_true', dest='skip_clock_check',
                             help='Do not check the system clock.')
+        parser.add_argument('--clock-check', action='store', type=bool, default=False,
+                            help='Set to true to check the system clock.')
         parser.add_argument('--check-clock-freq', type=int, default=600,
                             help='Minimum number of seconds between clock checks')
 
@@ -215,7 +217,7 @@ class Command(object):
         self.maybe_reload_with_updates(argv)
 
         self.parse_args(argv, known_only=True)  # Ensure that arguments are all known at this point
-        if not args.skip_clock_check:
+        if args.clock_check and not args.skip_clock_check:
             system_clock.check_system_clock(self.message, args.check_clock_freq)
 
         if not args.skip_dot_commands and not args.command.startswith('.'):

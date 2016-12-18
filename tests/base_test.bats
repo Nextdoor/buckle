@@ -152,7 +152,8 @@ EOF
     make_null_command belt-do-nothing
 
 	eval "$(python-libfaketime)"
-	stderr=$(FAKETIME=-120 BUCKLE_TOOLBELT_NAME=belt buckle do-nothing 2>&1 >/dev/null)
+	stderr=$(FAKETIME=-120 BUCKLE_TOOLBELT_NAME=belt \
+	         buckle --clock-check=true do-nothing 2>&1 >/dev/null)
 	[[ $stderr == *"The system clock is behind by"* ]]
 }
 
@@ -162,7 +163,7 @@ EOF
     make_null_command belt-do-nothing
 
 	eval "$(python-libfaketime)"
-	FAKETIME=-120 BUCKLE_TOOLBELT_NAME=belt buckle do-nothing 2>&1 >/dev/null
+	FAKETIME=-120 BUCKLE_TOOLBELT_NAME=belt buckle --clock-check=true do-nothing 2>&1 >/dev/null
 	[ ! -f $clock_checked_path ]
 }
 
@@ -173,12 +174,12 @@ EOF
 
 	touch -d "7 minutes ago" $clock_checked_path
 	last_timestamp=$(stat -c %Y $clock_checked_path)
-	BUCKLE_TOOLBELT_NAME=belt buckle do-nothing
+	BUCKLE_TOOLBELT_NAME=belt buckle --clock-check=true do-nothing
 	[[ "$(stat -c %Y $clock_checked_path)" = $last_timestamp ]]
 
 	touch -d "10 minutes ago" $clock_checked_path
 	last_timestamp=$(stat -c %Y $clock_checked_path)
-	BUCKLE_TOOLBELT_NAME=belt buckle do-nothing
+	BUCKLE_TOOLBELT_NAME=belt buckle --clock-check=true do-nothing
 	[[ "$(stat -c %Y $clock_checked_path)" != $last_timestamp ]]
 }
 
