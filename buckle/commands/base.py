@@ -70,6 +70,8 @@ class Command(object):
                                   help='Forces update of buckle before the given command is run')
         update_group.add_argument('--no-update', action='store_true', dest='skip_update',
                                   help='Prevents update of buckle before the given command is run')
+        update_group.add_argument('--auto-update', action='store', type=bool, default=False,
+                                  help='Check for updates of buckle before any command is run')
         parser.add_argument('--update-freq', type=int, default=3600,
                             help='Minimum number of seconds between updates.')
 
@@ -133,7 +135,7 @@ class Command(object):
         # Allow unknown arguments if they may be present in future versions of nd
         _, known_args = self.parse_args(argv, known_only=False)
 
-        if known_args.skip_update:
+        if known_args.skip_update or not (known_args.auto_update or known_args.force_update):
             return
 
         buckle_root = os.getenv('BUCKLE_ROOT')

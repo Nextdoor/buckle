@@ -90,7 +90,7 @@ EOF
 	updated_path=$BUCKLE_ROOT/.updated
 	rm -f $updated_path
     make_null_command belt-do-nothing
-	BUCKLE_TOOLBELT_NAME=belt buckle do-nothing
+	BUCKLE_TOOLBELT_NAME=belt buckle --auto-update=true do-nothing
 
 	[[ -f $updated_path ]]
 }
@@ -103,12 +103,12 @@ EOF
 
 	touch -d "55 minutes ago" $updated_path
 	last_timestamp=$(stat -c %Y $updated_path)
-	BUCKLE_TOOLBELT_NAME=belt buckle do-nothing
+	BUCKLE_TOOLBELT_NAME=belt buckle --auto-update=true do-nothing
 	[[ "$(stat -c %Y $updated_path)" = $last_timestamp ]]
 
 	touch -d "60 minutes ago" $updated_path
 	last_timestamp=$(stat -c %Y $updated_path)
-	BUCKLE_TOOLBELT_NAME=belt buckle do-nothing
+	BUCKLE_TOOLBELT_NAME=belt buckle --auto-update=true do-nothing
 	[[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
@@ -142,7 +142,7 @@ EOF
 
 	touch -d "5 minutes ago" $updated_path
 	last_timestamp=$(stat -c %Y $updated_path)
-	BUCKLE_TOOLBELT_NAME=belt buckle --update-freq 300 do-nothing
+	BUCKLE_TOOLBELT_NAME=belt buckle --auto-update=true --update-freq 300 do-nothing
 	[[ "$(stat -c %Y $updated_path)" != $last_timestamp ]]
 }
 
@@ -210,6 +210,7 @@ EOF
 	source .venv/bin/activate
 	pip install -e .
 
+    export BUCKLE_OPTS_BELT="--auto-update=true"
     make_null_command belt-do-nothing
 	actual=$(BUCKLE_TOOLBELT_NAME=belt buckle --some-new-flag-that-does-not-exist-yet do-nothing)
 	[[ $actual = "my-updated-buckle --some-new-flag-that-does-not-exist-yet do-nothing" ]]
