@@ -6,8 +6,8 @@ setup() {
 	_setup_alias belt
 }
 
-@test "'belt readme' prints the raw readme file in non-interactive mode" {
-    actual="$(echo | belt readme)"
-    expected="$(cat $BATS_TEST_DIRNAME/../README.md)"
-    [[ "$actual" = "$expected" && -n "$actual" ]]
-}
+#@test "'belt readme' prints the raw readme file in non-interactive mode" {
+#    actual="$(echo | belt readme)"
+#    expected="$(cat $BATS_TEST_DIRNAME/../README.md)"
+#    [[ "$actual" = "$expected" && -n "$actual" ]]
+#}
